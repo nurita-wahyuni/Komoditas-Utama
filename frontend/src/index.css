@@ -1,0 +1,168 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Original styles below */
+@layer components {
+  /* Modern Button Styles */
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2.5 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-sm;
+  }
+
+  .btn-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-700 hover:shadow-md focus:ring-primary-500 border border-transparent;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 focus:ring-slate-200;
+  }
+
+  .btn-accent {
+    @apply bg-secondary-600 text-white hover:bg-secondary-700 hover:shadow-glow focus:ring-secondary-500 border border-transparent;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 border border-transparent;
+  }
+
+  /* Modern Card Style */
+  .card {
+    @apply bg-surface-card rounded-lg shadow-card border border-surface-divider p-6 transition-all duration-300 hover:shadow-elevation;
+  }
+
+  /* Form Inputs */
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-md border border-surface-divider bg-background text-foreground placeholder-text-muted focus:border-primary focus:bg-surface-card focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm;
+  }
+
+  .label-text {
+    @apply block text-sm font-medium text-text-secondary mb-1.5;
+  }
+
+  /* Sidebar Nav Item */
+  .nav-item {
+    @apply flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200;
+  }
+
+  .nav-item-active {
+    @apply bg-primary-50 text-primary-700;
+  }
+
+  .nav-item-inactive {
+    @apply text-slate-600 hover:bg-slate-50 hover:text-slate-900;
+  }
+
+  /* Background removed (moved to inline img in component) */
+
+  .login-shell {
+    border-radius: 1.5rem; /* More rounded for modern look */
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 
+      0 20px 50px -12px rgba(0, 0, 0, 0.15), /* Soft drop shadow */
+      0 0 0 1px rgba(255, 255, 255, 0.1) inset; /* Inner light border */
+    transform-style: preserve-3d;
+    perspective: 1000px;
+  }
+
+  .login-shell__tint {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.4),
+      rgba(255, 255, 255, 0.1)
+    );
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: -1;
+  }
+
+  @supports not (
+    (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px))
+  ) {
+    .login-shell__tint {
+      background: linear-gradient(
+        135deg,
+        rgba(59, 130, 246, 0.22),
+        rgba(255, 255, 255, 0.35) 45%,
+        rgba(255, 255, 255, 0.25)
+      );
+    }
+  }
+}
