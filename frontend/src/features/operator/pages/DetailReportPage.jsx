@@ -3,16 +3,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getEntryDetail } from "../../../services/api";
 import {
   ArrowLeft,
-  Printer,
   FileText,
   Calendar,
-  MapPin,
-  Anchor,
   Box,
-  User,
   Flag,
-  Navigation,
-  Ship, // Import Ship
+  Ship,
+  Loader2,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -25,7 +21,8 @@ const DetailReportPage = () => {
   useEffect(() => {
     const fetchDetail = async () => {
       try {
-        const res = await getEntryDetail(id);
+        const isTimestamp = id.includes(" ") || id.includes("T") || id.includes("-");
+        const res = await getEntryDetail(id, isTimestamp ? { by_timestamp: true } : {});
         setData(res);
       } catch (err) {
         console.error("Failed to fetch detail:", err);
@@ -49,56 +46,64 @@ const DetailReportPage = () => {
 
   if (!data) return null;
 
+  // Handle both single entry and grouped entries
+  const entries = data.entries || [data];
+  const firstEntry = entries[0];
+  const reportTimestamp = data.timestamp || firstEntry.submitted_at;
+  const operatorName = data.operator_name || firstEntry.operator_name;
+  const reportStatus = data.status || firstEntry.status;
+
+  const formatOnlyDate = (dateStr) => {
+    if (!dateStr) return "-";
+    return new Date(dateStr).toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 p-8 print:p-0 print:bg-white relative">
-      {/* Watermark */}
-      <div className="fixed inset-0 pointer-events-none z-0 flex items-center justify-center overflow-hidden">
-        <div className="text-slate-200 text-[15rem] font-black opacity-20 -rotate-45 select-none transform scale-150 whitespace-nowrap">
-          READ ONLY
-        </div>
-      </div>
-
       {/* Toolbar (Hidden on Print) */}
-      <div className="max-w-4xl mx-auto mb-6 flex justify-between items-center print:hidden relative z-10">
+      <div className="max-w-5xl mx-auto mb-6 flex justify-between items-center print:hidden relative z-10">
         <button
           onClick={() => navigate("/laporan")}
-          className="flex items-center text-slate-600 hover:text-slate-900 font-medium transition-colors"
+          className="flex items-center text-slate-600 hover:text-slate-900 font-medium transition-colors bg-white px-4 py-2 rounded-lg shadow-sm border border-slate-200"
         >
           <ArrowLeft size={20} className="mr-2" />
-          Kembali
+          Kembali ke Laporan Saya
         </button>
-        <div className="bg-orange-100 text-orange-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center">
+        <div className="bg-orange-100 text-orange-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center border border-orange-200">
           <FileText size={16} className="mr-2" />
           Mode Baca Saja (Read-Only)
         </div>
       </div>
 
       {/* Paper Sheet */}
-      <div className="max-w-4xl mx-auto bg-white shadow-2xl print:shadow-none min-h-[1123px] relative z-10 print:w-full print:max-w-none">
+      <div className="max-w-5xl mx-auto bg-white shadow-2xl print:shadow-none min-h-[1123px] relative z-10 print:w-full print:max-w-none rounded-xl overflow-hidden border border-slate-200 print:border-none">
         {/* Header - Matches PDF Template Style (BPS KOTA BONTANG) */}
-        <div className="border-b-4 border-black p-8 pb-4">
-          <div className="flex items-center gap-6">
+        <div className="p-8 pb-6 bg-white border-b-4 border-slate-900">
+          <div className="flex items-center gap-8">
             {/* Logo BPS */}
-            <div className="w-24 h-16 relative">
-              {/* Using external logo for demo, ideally local asset */}
+            <div className="w-24 h-20 flex-shrink-0">
               <img
                 src="/logo-bps.png"
                 alt="Logo BPS"
-                className="w-full h-full object-contain object-left"
+                className="w-full h-full object-contain"
               />
             </div>
             {/* Text Header */}
             <div className="flex-1">
-              <h1 className="text-2xl font-black text-black uppercase leading-tight tracking-tight">
+              <h1 className="text-3xl font-black text-slate-900 uppercase leading-none tracking-tight">
                 BADAN PUSAT STATISTIK
                 <br />
                 KOTA BONTANG
               </h1>
-              <div className="text-[10px] text-black font-medium leading-snug mt-1">
+              <div className="text-xs text-slate-600 font-medium leading-relaxed mt-2 max-w-xl">
                 Jl. Awang Long No 2, Bontang Baru, Kec. Bontang Utara, Kota
                 Bontang
                 <br />
-                Telp (0548) 26066 Homepage: https://bontangkota.bps.go.id/
+                Telp (0548) 26066 | Homepage: https://bontangkota.bps.go.id/ |
                 E-mail: bps6474@bps.go.id
               </div>
             </div>
@@ -106,142 +111,100 @@ const DetailReportPage = () => {
         </div>
 
         {/* Content Body */}
-        <div className="p-10 space-y-10">
-          {/* Section 1: Detail Muatan */}
-          <section>
-            <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-200 pb-2 flex items-center gap-2">
-              <Box size={16} /> Detail Muatan
-            </h2>
-            <div className="grid grid-cols-3 gap-6 bg-slate-800 text-white p-6 rounded-xl shadow-lg">
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
-                  Jenis Kegiatan
-                </label>
-                <div
-                  className={`text-lg font-black uppercase tracking-wide ${
-                    data.jenis_kegiatan === "Bongkar"
-                      ? "text-orange-400"
-                      : "text-emerald-400"
-                  }`}
-                >
-                  {data.jenis_kegiatan}
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
-                  Komoditas
-                </label>
-                <div className="text-lg font-bold">
-                  {data.komoditas || data.nama_muatan}
-                </div>
-                {data.komoditas && data.nama_muatan && (
-                  <div className="text-xs text-slate-400 italic mt-1">
-                    ({data.nama_muatan})
-                  </div>
-                )}
-              </div>
-              <div className="text-right">
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
-                  Volume / Jumlah
-                </label>
-                <div className="text-3xl font-mono font-bold">
-                  {parseFloat(data.jumlah_muatan).toLocaleString("id-ID")}
-                </div>
-                <div className="text-sm font-medium text-slate-400 mt-1">
-                  {data.satuan_muatan}
-                  {data.jenis_kemasan &&
-                    data.jenis_kemasan !== "-" &&
-                    ` • ${data.jenis_kemasan}`}
-                </div>
-              </div>
+        <div className="p-10 space-y-8">
+          {/* Title Area */}
+          <div className="flex justify-between items-start border-b border-slate-100 pb-6">
+            <div>
+              <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">
+                LAPORAN OPERASIONAL PELABUHAN
+              </h2>
+              <p className="text-sm text-slate-500 font-medium mt-1">
+                Operator: <span className="text-slate-900 font-bold">{operatorName}</span>
+              </p>
             </div>
-          </section>
+            <div className="text-right">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Waktu Pelaporan</p>
+              <p className="text-sm font-bold text-slate-800">
+                {formatOnlyDate(reportTimestamp)}
+              </p>
+              <p className="text-xs font-mono text-slate-500">
+                Pukul {new Date(reportTimestamp).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
+          </div>
 
-          {/* Section 2: Informasi Tambahan */}
-          <section>
-            <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6 border-b border-slate-200 pb-2 flex items-center gap-2">
-              <FileText size={16} /> Informasi Tambahan
-            </h2>
-            <div className="grid grid-cols-2 gap-y-6 gap-x-12">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
-                    LOA (Meter)
-                  </label>
-                  <div className="text-base font-mono font-bold text-slate-800">
-                    {parseFloat(data.loa).toLocaleString("id-ID")}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
-                    GRT
-                  </label>
-                  <div className="text-base font-mono font-bold text-slate-800">
-                    {parseFloat(data.grt).toLocaleString("id-ID")}
-                  </div>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase mb-1">
-                  Tanggal Laporan
-                </label>
-                <div className="text-base font-medium text-slate-700 flex items-center gap-2">
-                  <Calendar size={16} className="text-slate-400" />
-                  {data.tanggal_laporan
-                    ? new Date(data.tanggal_laporan).toLocaleDateString("id-ID", {
-                        day: "2-digit",
-                        month: "long",
-                        year: "numeric",
-                      })
-                    : "-"}
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Section 4: Metadata */}
-          <section className="pt-8 border-t border-slate-200">
-            <div className="flex justify-between items-end">
-              <div className="text-xs text-slate-400 space-y-1">
-                <p>
-                  Operator:{" "}
-                  <span className="font-bold text-slate-600">
-                    {data.operator_name}
-                  </span>
-                </p>
-                <p>
-                  Kategori:{" "}
-                  <span className="font-bold text-slate-600">
-                    {data.kategori_pelayaran}
-                  </span>
-                </p>
-                <p>
-                  Status:{" "}
-                  <span className="font-bold text-slate-600 uppercase">
-                    {data.status}
-                  </span>
-                </p>
-              </div>
-              <div className="text-right">
-                <div className="w-24 h-24 border-2 border-slate-200 rounded-lg flex items-center justify-center">
-                  <span className="text-[10px] text-slate-300 font-bold uppercase text-center leading-tight">
-                    Digital
-                    <br />
-                    Signature
-                    <br />
-                    Placeholder
-                  </span>
-                </div>
-                <p className="text-[10px] text-slate-400 mt-2 font-mono">
-                  Generated by Simoppel System
-                </p>
-              </div>
-            </div>
-          </section>
+          {/* Table Section */}
+          <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-800 text-white font-bold uppercase text-[10px] tracking-widest">
+                <tr>
+                  <th className="px-4 py-4 text-center border-r border-slate-700 w-12">No</th>
+                  <th className="px-6 py-4 border-r border-slate-700 w-32">Tanggal</th>
+                  <th className="px-6 py-4 border-r border-slate-700 w-28">Kegiatan</th>
+                  <th className="px-6 py-4 border-r border-slate-700">Komoditas</th>
+                  <th className="px-6 py-4 border-r border-slate-700 text-right w-32">Volume</th>
+                  <th className="px-6 py-4 text-left w-32">LOA/GRT</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {entries.map((item, index) => (
+                  <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-4 py-6 text-center text-slate-400 font-mono border-r border-slate-100">
+                      {index + 1}
+                    </td>
+                    <td className="px-6 py-6 font-bold text-slate-700 border-r border-slate-100">
+                      {formatOnlyDate(item.tanggal_laporan)}
+                    </td>
+                    <td className="px-6 py-6 border-r border-slate-100">
+                      <span className={`px-3 py-1 rounded text-[10px] font-black uppercase tracking-wider ${
+                        item.jenis_kegiatan === 'Bongkar' 
+                          ? 'bg-orange-100 text-orange-700' 
+                          : 'bg-emerald-100 text-emerald-700'
+                      }`}>
+                        {item.jenis_kegiatan}
+                      </span>
+                    </td>
+                    <td className="px-6 py-6 border-r border-slate-100">
+                      <div className="flex flex-col">
+                        <span className="font-black text-slate-900 leading-none mb-1">
+                          {item.komoditas || item.nama_muatan}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium italic">
+                          {item.kategori_pelayaran}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-6 text-right border-r border-slate-100">
+                      <div className="flex flex-col">
+                        <span className="font-mono font-black text-slate-900 text-lg leading-none">
+                          {parseFloat(item.jumlah_muatan).toLocaleString("id-ID")}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-bold uppercase mt-1">
+                          {item.satuan_muatan}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-6">
+                      <div className="space-y-1">
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">LOA:</span>
+                          <span className="text-xs font-mono font-bold text-slate-700">{parseFloat(item.loa).toLocaleString("id-ID")}m</span>
+                        </div>
+                        <div className="flex justify-between items-center gap-2">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase">GRT:</span>
+                          <span className="text-xs font-mono font-bold text-slate-700">{parseFloat(item.grt).toLocaleString("id-ID")}</span>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Footer Stripe */}
-        <div className="h-4 bg-slate-800 w-full absolute bottom-0"></div>
+        <div className="h-3 bg-slate-900 w-full absolute bottom-0"></div>
       </div>
     </div>
   );

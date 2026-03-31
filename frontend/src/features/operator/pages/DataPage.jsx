@@ -12,6 +12,8 @@ import toast from "react-hot-toast";
 import { useAuth } from "../../../context/AuthContext";
 import SummaryCard from "../../../components/shared/SummaryCard";
 
+import { formatDateIndo, formatNumberIndo } from "../../../utils/dateHelpers";
+
 const DataPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -41,13 +43,9 @@ const DataPage = () => {
       // Ideally backend should have a "recent" endpoint.
       // For now, let's fetch current year data.
       
-      const currentYear = new Date().getFullYear();
-      // Fetch entire year? Or maybe 2 years?
-      // Let's fetch current year first.
-      
       const res = await getEntries({
         operator_id: user?.id,
-        tahun: currentYear,
+        grouped: true,
       });
       
       // If API requires month, we might need to loop or change API. 
@@ -76,9 +74,11 @@ const DataPage = () => {
 
   // Filter Logic
   const displayData = data.filter((item) => {
-    const matchesSearch = item.nama_kapal
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+    const searchStr = searchTerm.toLowerCase();
+    const matchesSearch = 
+      (item.operator_name || "").toLowerCase().includes(searchStr) ||
+      (item.activities || "").toLowerCase().includes(searchStr) ||
+      (item.categories || "").toLowerCase().includes(searchStr);
     return matchesSearch;
   });
 
@@ -130,19 +130,20 @@ const DataPage = () => {
         {/* Table Section */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
-            <thead className="bg-slate-50 text-slate-600 font-semibold uppercase text-xs">
+            <thead className="bg-slate-50 text-slate-600 font-semibold uppercase text-[10px] tracking-widest">
               <tr>
-                <th className="px-6 py-4">Tanggal Input & Jenis</th>
-                <th className="px-6 py-4 text-right">LOA (m)</th>
-                <th className="px-6 py-4 text-right">GRT</th>
-                <th className="px-6 py-4">Kegiatan</th>
+                <th className="px-6 py-4">Waktu Pelaporan</th>
+                <th className="px-6 py-4">Kategori Pelayaran</th>
+                <th className="px-6 py-4">Jenis Kegiatan</th>
+                <th className="px-6 py-4 text-center">Jumlah Entri</th>
+                <th className="px-6 py-4 text-center">Status</th>
                 <th className="px-6 py-4 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-12 text-center">
+                  <td colSpan="6" className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center justify-center gap-3">
                       <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
                       <p className="text-slate-500 font-medium">
@@ -153,7 +154,7 @@ const DataPage = () => {
                 </tr>
               ) : displayData.length === 0 ? (
                 <tr>
-                  <td colSpan="5" className="px-6 py-12 text-center">
+                  <td colSpan="6" className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center justify-center gap-3">
                       <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center">
                         <Ship className="w-6 h-6 text-slate-400" />
@@ -169,66 +170,71 @@ const DataPage = () => {
               ) : (
                 displayData.map((item, index) => (
                   <tr
-                    key={item.id || index}
+                    key={item.timestamp || index}
                     className="hover:bg-slate-50 transition-colors"
                   >
-                    {/* Tanggal Input & Jenis */}
+                    {/* Waktu Pelaporan */}
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
-                        <span className="font-medium text-slate-800">
-                          {new Date(item.tanggal_laporan).toLocaleDateString("id-ID", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })}
+                        <span className="font-bold text-slate-800">
+                          {formatDateIndo(item.date)}
                         </span>
-                        <span className="text-xs text-slate-500 uppercase mt-0.5">
-                          {item.kategori_pelayaran}
+                        <span className="text-[10px] text-slate-400 font-mono mt-0.5">
+                          Pukul {new Date(item.date).toLocaleTimeString("id-ID", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </span>
                       </div>
                     </td>
 
-                    {/* LOA */}
-                    <td className="px-6 py-4 text-right font-mono text-slate-700">
-                      {parseFloat(item.loa || 0).toLocaleString("id-ID")}
-                    </td>
-
-                    {/* GRT */}
-                    <td className="px-6 py-4 text-right font-mono text-slate-700">
-                       {parseFloat(item.grt || 0).toLocaleString("id-ID")}
+                    {/* Kategori */}
+                    <td className="px-6 py-4">
+                      <div className="flex flex-wrap gap-1">
+                        {item.categories.split(', ').map((cat, i) => (
+                          <span key={i} className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-bold">
+                            {cat}
+                          </span>
+                        ))}
+                      </div>
                     </td>
 
                     {/* Kegiatan */}
                     <td className="px-6 py-4">
-                       <span
-                        className={`px-2 py-1 rounded text-xs font-bold uppercase ${
-                          item.jenis_kegiatan === "Bongkar"
-                            ? "text-orange-600 bg-orange-50"
-                            : "text-emerald-600 bg-emerald-50"
-                        }`}
-                      >
-                        {item.jenis_kegiatan}
-                      </span>
+                      <div className="flex flex-wrap gap-1">
+                        {item.activities.split(', ').map((act, i) => (
+                          <span key={i} className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            act === "Bongkar" ? "text-orange-600 bg-orange-50" : "text-emerald-600 bg-emerald-50"
+                          }`}>
+                            {act}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+
+                    {/* Jumlah Entri */}
+                    <td className="px-6 py-4 text-center font-mono font-bold text-slate-700">
+                      {item.total_entries}
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-6 py-4 text-center">
+                       <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${
+                         item.status === 'APPROVED' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+                       }`}>
+                         {item.status}
+                       </span>
                     </td>
 
                     {/* Aksi */}
                     <td className="px-6 py-4 text-center">
-                      <div className="inline-flex space-x-1">
-                        <button
-                          onClick={() => navigate(`/laporan/detail/${item.id}`)}
-                          className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
-                          title="Lihat Detail"
-                        >
-                          <Eye size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
-                          title="Hapus Entry"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => navigate(`/laporan/detail/${item.timestamp}`)}
+                        className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors inline-flex items-center gap-2 font-bold text-xs"
+                        title="Lihat Detail"
+                      >
+                        <Eye size={16} /> Lihat Detail
+                      </button>
                     </td>
                   </tr>
                 ))

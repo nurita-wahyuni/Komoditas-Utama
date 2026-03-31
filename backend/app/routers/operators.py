@@ -53,6 +53,49 @@ def create_operator(operator: UserCreate, user: dict = Depends(get_current_user)
         cursor.close()
         conn.close()
 
+@router.put("/operators/{id}")
+def update_operator(id: int, data: dict = Body(...), user: dict = Depends(get_current_user)):
+    if user['role'] != 'ADMIN':
+        raise HTTPException(status_code=403, detail="Unauthorized")
+        
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        # Check if user exists
+        cursor.execute("SELECT id FROM users WHERE id = %s", (id,))
+        if not cursor.fetchone():
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Dynamic update based on provided fields
+        update_fields = []
+        params = []
+        
+        if 'nama' in data:
+            update_fields.append("nama = %s")
+            params.append(data['nama'])
+        if 'email' in data:
+            update_fields.append("email = %s")
+            params.append(data['email'])
+        if 'password' in data and data['password']:
+            update_fields.append("password_hash = %s")
+            params.append(get_password_hash(data['password']))
+            
+        if not update_fields:
+            return {"message": "No fields to update"}
+            
+        params.append(id)
+        sql = f"UPDATE users SET {', '.join(update_fields)} WHERE id = %s"
+        cursor.execute(sql, tuple(params))
+        conn.commit()
+        
+        return {"message": "Operator updated successfully"}
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        conn.close()
+
 @router.delete("/operators/{id}")
 def delete_operator(id: int, user: dict = Depends(get_current_user)):
     if user['role'] != 'ADMIN':

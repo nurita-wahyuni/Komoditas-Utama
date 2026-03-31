@@ -13,16 +13,14 @@ import ProtectedRoute from "./features/auth/components/ProtectedRoute";
 import LoginPage from "./features/auth/pages/LoginPage";
 import OperatorDashboard from "./features/operator/pages/OperatorDashboard";
 import OperatorEntry from "./features/operator/pages/OperatorEntry";
-import AdminDashboard from "./features/admin/pages/AdminDashboard";
+import AdminDashboard from "./features/admin/pages/DashboardPage";
 import AdminOperators from "./features/admin/pages/AdminOperators";
 import DataPage from "./features/operator/pages/DataPage";
-import RekapFaxPage from "./features/operator/pages/RekapFaxPage";
 import RekapDraftOperator from "./features/admin/pages/RekapDraftOperator";
 import RekapDataEntries from "./features/admin/pages/RekapDataEntries";
 import RekapPdfViewer from "./features/admin/pages/RekapPdfViewer";
 import DetailSubmission from "./features/admin/pages/DetailSubmission";
 import DetailReportPage from "./features/operator/pages/DetailReportPage";
-import { Users } from "lucide-react";
 
 // Wrapper for Operator Layout
 const OperatorLayoutWrapper = () => (
@@ -56,7 +54,6 @@ function App() {
                 path="/laporan/detail/:id"
                 element={<DetailReportPage />}
               />
-              <Route path="/rekap" element={<RekapFaxPage />} />
               <Route path="/data" element={<DataPage />} />
             </Route>
           </Route>

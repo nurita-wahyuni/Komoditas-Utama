@@ -29,6 +29,7 @@ const AdminOperators = () => {
   const [formData, setFormData] = useState({
     nama: '',
     email: '',
+    password: '',
     role: 'OPERATOR'
   });
 
@@ -37,10 +38,11 @@ const AdminOperators = () => {
     try {
       setLoading(true);
       const data = await getOperators();
-      setOperators(data);
+      setOperators(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Failed to fetch operators", error);
       toast.error("Gagal memuat data operator");
+      setOperators([]);
     } finally {
       setLoading(false);
     }
@@ -57,13 +59,15 @@ const AdminOperators = () => {
       setFormData({
         nama: operator.nama,
         email: operator.email || '',
-        role: operator.role
+        password: '', // Password empty when editing
+        role: 'OPERATOR'
       });
     } else {
       setEditingId(null);
       setFormData({
         nama: '',
         email: '',
+        password: '',
         role: 'OPERATOR'
       });
     }
@@ -73,7 +77,7 @@ const AdminOperators = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingId(null);
-    setFormData({ nama: '', email: '', role: 'OPERATOR' });
+    setFormData({ nama: '', email: '', password: '', role: 'OPERATOR' });
   };
 
   const handleSubmit = async (e) => {
@@ -83,20 +87,30 @@ const AdminOperators = () => {
       return;
     }
 
+    if (!editingId && !formData.password) {
+      toast.error("Password wajib diisi untuk operator baru");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       if (editingId) {
-        await updateOperator(editingId, formData);
+        // Only send password if it's not empty
+        const updateData = { ...formData };
+        if (!updateData.password) delete updateData.password;
+        
+        await updateOperator(editingId, updateData);
         toast.success("Operator berhasil diperbarui");
       } else {
         await createOperator(formData);
         toast.success("Operator berhasil ditambahkan");
       }
       handleCloseModal();
-      fetchOperators();
+      await fetchOperators();
     } catch (error) {
       console.error("Submit error", error);
-      toast.error(error.response?.data?.detail || "Gagal menyimpan data");
+      const errorMsg = error.response?.data?.detail;
+      toast.error(Array.isArray(errorMsg) ? errorMsg[0].msg : (errorMsg || "Gagal menyimpan data"));
     } finally {
       setIsSubmitting(false);
     }
@@ -107,7 +121,7 @@ const AdminOperators = () => {
       try {
         await deleteOperator(id);
         toast.success("Operator berhasil dihapus");
-        fetchOperators();
+        await fetchOperators();
       } catch (error) {
         console.error("Delete error", error);
         toast.error("Gagal menghapus operator");
@@ -116,8 +130,8 @@ const AdminOperators = () => {
   };
 
   // Filter
-  const filteredOperators = operators.filter(op => 
-    op.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredOperators = (Array.isArray(operators) ? operators : []).filter(op => 
+    (op.nama || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
     (op.email && op.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
@@ -129,9 +143,9 @@ const AdminOperators = () => {
         <div>
           <h1 className="text-2xl font-bold text-slate-800 flex items-center">
             <Users className="mr-3 text-blue-600" size={28} />
-            Manajemen Operator
+            Daftar Operator Pelayaran
           </h1>
-          <p className="text-slate-500 mt-1">Kelola akun operator dan akses sistem</p>
+          <p className="text-slate-500 mt-1">Kelola akun operator pelayaran yang terdaftar di sistem</p>
         </div>
         <button 
           onClick={() => handleOpenModal()}
@@ -162,10 +176,9 @@ const AdminOperators = () => {
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">ID</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">No</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Nama Operator</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Role</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Terdaftar</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Aksi</th>
               </tr>
@@ -173,7 +186,7 @@ const AdminOperators = () => {
             <tbody className="bg-white divide-y divide-slate-200">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan="5" className="px-6 py-12 text-center text-slate-500">
                     <div className="flex justify-center items-center space-x-2">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
                       <span>Memuat data...</span>
@@ -182,26 +195,19 @@ const AdminOperators = () => {
                 </tr>
               ) : filteredOperators.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan="5" className="px-6 py-12 text-center text-slate-500">
                     Tidak ada data operator ditemukan.
                   </td>
                 </tr>
               ) : (
-                filteredOperators.map((op) => (
+                filteredOperators.map((op, index) => (
                   <tr key={op.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">#{op.id}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">{index + 1}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-slate-900">{op.nama}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                       {op.email || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        op.role === 'ADMIN' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'
-                      }`}>
-                        {op.role}
-                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                       {op.created_at ? new Date(op.created_at).toLocaleDateString() : '-'}
@@ -266,16 +272,17 @@ const AdminOperators = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
-                <select 
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  {editingId ? 'Password Baru (Kosongkan jika tidak ingin mengubah)' : 'Password'}
+                </label>
+                <input 
+                  type="password" 
+                  required={!editingId}
                   className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  value={formData.role}
-                  onChange={(e) => setFormData({...formData, role: e.target.value})}
-                >
-                  <option value="OPERATOR">OPERATOR</option>
-                  <option value="ADMIN">ADMIN</option>
-                  <option value="VIEWER">VIEWER</option>
-                </select>
+                  value={formData.password}
+                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                  placeholder={editingId ? '********' : 'Masukkan password'}
+                />
               </div>
 
               <div className="pt-4 flex justify-end space-x-3">

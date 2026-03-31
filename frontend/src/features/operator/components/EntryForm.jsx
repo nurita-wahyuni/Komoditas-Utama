@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
-import { Trash2 } from "lucide-react";
+import { Trash2, Save } from "lucide-react";
 import { submitEntries } from "../../../services/api";
+import toast from "react-hot-toast";
+
+const DRAFT_STORAGE_KEY = "simoppel_entry_draft";
+
 const CATEGORIES = [
   { key: "luar_negeri", title: "Luar Negeri" },
   { key: "dalam_negeri", title: "Dalam Negeri" },
@@ -12,33 +16,17 @@ const CATEGORIES = [
 const JENIS_KEGIATAN_OPTIONS = ["Bongkar", "Muat"];
 
 const KOMODITAS_OPTIONS = [
-  "Ton dan MT",
-  "Sirtu, Pasir, Batu",
-  "BBM",
-  "Mobil",
-  "Motor",
-  "Truk",
-  "Bus",
-  "Alat Berat",
-  "Container Kosong",
-  "Penumpang",
+  "LPG",
+  "LNG",
+  "PUPUK",
+  "AMMONIA",
+  "AMMONIUM NITRATE",
 ];
 
-const SATUAN_OPTIONS = ["Ton/MT", "M3", "kl", "Unit", "teus", "Orang"];
-
-const JENIS_KEMASAN_OPTIONS = [
-  "Curah",
-  "Bag",
-  "Box",
-  "Drum",
-  "Peti Kemas",
-  "Kandang",
-  "Unit",
-  "Lainnya",
-];
+const SATUAN_OPTIONS = ["Ton"];
 
 const TableField = ({ children, className = "" }) => (
-  <td className={`px-3 py-3 align-top border-t border-slate-200 ${className}`}> {children} </td>
+  <td className={`px-2 py-2 align-top border-t border-slate-200 ${className}`}> {children} </td>
 );
 
 TableField.propTypes = {
@@ -46,29 +34,15 @@ TableField.propTypes = {
   className: PropTypes.string,
 };
 
-// Deprecated ship fields kept for backend compatibility
-// Will be removed after database migration
-const deprecatedShipFields = {
-  nama_kapal: "",
-  negara: "",
-  kepemilikan: "",
-  tiba_pelabuhan: "",
-  pelabuhan_tujuan: "",
-  tanggal_keberangkatan: "",
-  tanggal_kedatangan: "",
-  tambat: "",
-};
-
 const createEmptyRow = () => ({
-  ...deprecatedShipFields,
-  loa: 0,
-  grt: 0,
-  activity: "",
-  commodity: "",
-  description: "",
-  amount: 0,
-  unit: "",
-  packaging: "",
+  loa: "",
+  grt: "",
+  activity: "Bongkar", // Default activity
+  commodity: "LPG", // Default commodity
+  description: "-", // Default description
+  amount: "",
+  unit: "Ton", // Default unit
+  packaging: "Curah", // Default packaging
 });
 
 const createInitialEntriesState = () => ({
@@ -79,28 +53,23 @@ const createInitialEntriesState = () => ({
 });
 
 const COMMODITY_UNIT_MAPPING = {
-  "Ton dan MT": "Ton/MT",
-  "Sirtu, Pasir, Batu": "M3",
-  BBM: "kl",
-  Mobil: "Unit",
-  Motor: "Unit",
-  Truk: "Unit",
-  Bus: "Unit",
-  "Alat Berat": "Unit",
-  "Container Kosong": "teus",
-  Penumpang: "Orang",
+  LPG: "Ton",
+  LNG: "Ton",
+  PUPUK: "Ton",
+  AMMONIA: "Ton",
+  "AMMONIUM NITRATE": "Ton",
 };
 
 const hasRowData = (row) => {
-  const loaHasValue = typeof row.loa === "number" && row.loa !== 0;
-  const grtHasValue = typeof row.grt === "number" && row.grt !== 0;
+  const loaHasValue = row.loa !== "" && row.loa !== "0";
+  const grtHasValue = row.grt !== "" && row.grt !== "0";
   const activityHasValue =
     typeof row.activity === "string" && row.activity.trim() !== "";
   const commodityHasValue =
     typeof row.commodity === "string" && row.commodity.trim() !== "";
   const descriptionHasValue =
     typeof row.description === "string" && row.description.trim() !== "";
-  const amountHasValue = typeof row.amount === "number" && row.amount !== 0;
+  const amountHasValue = row.amount !== "" && row.amount !== "0";
   const unitHasValue = typeof row.unit === "string" && row.unit.trim() !== "";
   const packagingHasValue =
     typeof row.packaging === "string" && row.packaging.trim() !== "";
@@ -125,7 +94,16 @@ const getAmountPlaceholder = (commodity) => {
 
 const formatNumber = (value) => {
   if (!Number.isFinite(value) || value === 0) return "0";
-  return value.toLocaleString("id-ID");
+  return value.toLocaleString("id-ID", { maximumFractionDigits: 3 });
+};
+
+// Helper to get number from potentially comma-separated string
+const parseInputNumber = (val) => {
+  if (typeof val === "number") return val;
+  if (!val) return 0;
+  const normalized = val.replace(",", ".");
+  const parsed = parseFloat(normalized);
+  return isNaN(parsed) ? 0 : parsed;
 };
 
 const EntryCategoryCard = ({
@@ -161,29 +139,17 @@ const EntryCategoryCard = ({
   const dataRows = rows.filter(hasRowData);
 
   const totalLoa = dataRows.reduce(
-    (acc, r) => acc + (r.loa > 0 ? r.loa : 0),
+    (acc, r) => acc + parseInputNumber(r.loa),
     0
   );
   const totalGrt = dataRows.reduce(
-    (acc, r) => acc + (r.grt > 0 ? r.grt : 0),
+    (acc, r) => acc + parseInputNumber(r.grt),
     0
   );
   const totalAmount = dataRows.reduce(
-    (acc, r) => acc + (r.amount > 0 ? r.amount : 0),
+    (acc, r) => acc + parseInputNumber(r.amount),
     0
   );
-
-  const descriptionList = dataRows
-    .map((r) => (r.description || "").trim())
-    .filter(Boolean);
-  const descriptionText = descriptionList.length
-    ? descriptionList.join(", ")
-    : "-";
-
-  const unitSet = new Set(
-    dataRows.map((r) => (r.unit || "").trim()).filter(Boolean)
-  );
-  const unitText = unitSet.size ? Array.from(unitSet).join(", ") : "-";
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-soft border border-slate-100">
@@ -197,18 +163,16 @@ const EntryCategoryCard = ({
       </div>
 
       <div className="overflow-x-auto" ref={tableRef}>
-        <table className="w-full min-w-[1100px] border border-slate-200 rounded-lg overflow-hidden">
+        <table className="w-full min-w-[1100px] border border-slate-200 rounded-lg overflow-hidden table-fixed">
           <thead className="bg-slate-50">
             <tr className="text-left text-xs font-bold text-slate-600 uppercase tracking-wide">
-              <th className="px-3 py-3">LOA</th>
-              <th className="px-3 py-3">GRT</th>
-              <th className="px-3 py-3">Jenis Kegiatan</th>
-              <th className="px-3 py-3">Komoditas</th>
-              <th className="px-3 py-3">Keterangan Barang</th>
-              <th className="px-3 py-3">Jumlah/Massa/Penumpang</th>
-              <th className="px-3 py-3">Satuan</th>
-              <th className="px-3 py-3">Jenis Kemasan</th>
-              <th className="px-3 py-3 text-center">Aksi</th>
+              <th className="px-3 py-3 w-[100px] whitespace-nowrap">LOA</th>
+              <th className="px-3 py-3 w-[100px] whitespace-nowrap">GRT</th>
+              <th className="px-3 py-3 w-[150px] whitespace-nowrap text-center">Jenis Kegiatan</th>
+              <th className="px-3 py-3 w-[250px] whitespace-nowrap">Komoditas</th>
+              <th className="px-3 py-3 w-[290px] whitespace-nowrap">Jumlah/Massa</th>
+              <th className="px-3 py-3 w-[120px] whitespace-nowrap">Satuan</th>
+              <th className="px-3 py-3 w-[80px] text-center whitespace-nowrap">Aksi</th>
             </tr>
           </thead>
           <tbody className="bg-white">
@@ -216,43 +180,43 @@ const EntryCategoryCard = ({
               <tr key={rowIndex}>
                 <TableField>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     placeholder="0"
-                    className="input-field text-sm h-9"
+                    className="input-field px-2 text-sm h-9"
                     disabled={isDisabled}
                     value={row.loa}
                     onFocus={() => onRowActivate(rowIndex)}
                     onKeyDown={handleEnterNavigation}
-                    onChange={(e) =>
-                      onRowChange(
-                        rowIndex,
-                        "loa",
-                        parseFloat(e.target.value) || 0
-                      )
-                    }
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "" || /^[0-9]*[.,]?[0-9]*$/.test(val)) {
+                        onRowChange(rowIndex, "loa", val);
+                      }
+                    }}
                   />
                 </TableField>
                 <TableField>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     placeholder="0"
-                    className="input-field text-sm h-9"
+                    className="input-field px-2 text-sm h-9"
                     disabled={isDisabled}
                     value={row.grt}
                     onFocus={() => onRowActivate(rowIndex)}
                     onKeyDown={handleEnterNavigation}
-                    onChange={(e) =>
-                      onRowChange(
-                        rowIndex,
-                        "grt",
-                        parseFloat(e.target.value) || 0
-                      )
-                    }
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "" || /^[0-9]*[.,]?[0-9]*$/.test(val)) {
+                        onRowChange(rowIndex, "grt", val);
+                      }
+                    }}
                   />
                 </TableField>
-                <TableField>
+                <TableField className="text-center">
                   <select
-                    className="input-field text-sm h-9"
+                    className="input-field px-2 text-sm h-9 w-full max-w-[130px] mx-auto block"
                     disabled={isDisabled}
                     value={row.activity}
                     onFocus={() => onRowActivate(rowIndex)}
@@ -261,7 +225,6 @@ const EntryCategoryCard = ({
                       onRowChange(rowIndex, "activity", e.target.value)
                     }
                   >
-                    <option value=""></option>
                     {JENIS_KEGIATAN_OPTIONS.map((opt) => (
                       <option key={opt} value={opt}>
                         {opt}
@@ -271,7 +234,7 @@ const EntryCategoryCard = ({
                 </TableField>
                 <TableField>
                   <select
-                    className="input-field text-sm h-9"
+                    className="input-field px-2 text-sm h-9"
                     disabled={isDisabled}
                     value={row.commodity}
                     onFocus={() => onRowActivate(rowIndex)}
@@ -280,11 +243,10 @@ const EntryCategoryCard = ({
                       const nextCommodity = e.target.value;
                       onRowChange(rowIndex, "commodity", nextCommodity);
                       const mappedUnit =
-                        COMMODITY_UNIT_MAPPING[nextCommodity] || "";
+                        COMMODITY_UNIT_MAPPING[nextCommodity] || "Ton";
                       onRowChange(rowIndex, "unit", mappedUnit);
                     }}
                   >
-                    <option value=""></option>
                     {KOMODITAS_OPTIONS.map((opt) => (
                       <option key={opt} value={opt}>
                         {opt}
@@ -295,71 +257,28 @@ const EntryCategoryCard = ({
                 <TableField>
                   <input
                     type="text"
-                    className="input-field text-sm h-9"
-                    disabled={isDisabled}
-                    value={row.description}
-                    onFocus={() => onRowActivate(rowIndex)}
-                    onKeyDown={handleEnterNavigation}
-                    onChange={(e) =>
-                      onRowChange(rowIndex, "description", e.target.value)
-                    }
-                  />
-                </TableField>
-                <TableField>
-                  <input
-                    type="number"
+                    inputMode="decimal"
                     placeholder={getAmountPlaceholder(row.commodity)}
-                    className="input-field text-sm h-9"
+                    className="input-field px-2 text-sm h-9"
                     disabled={isDisabled}
                     value={row.amount}
                     onFocus={() => onRowActivate(rowIndex)}
                     onKeyDown={handleEnterNavigation}
-                    onChange={(e) =>
-                      onRowChange(
-                        rowIndex,
-                        "amount",
-                        parseFloat(e.target.value) || 0
-                      )
-                    }
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "" || /^[0-9]*[.,]?[0-9]*$/.test(val)) {
+                        onRowChange(rowIndex, "amount", val);
+                      }
+                    }}
                   />
                 </TableField>
                 <TableField>
-                  <select
-                    className="input-field text-sm h-9"
-                    disabled={isDisabled}
-                    value={row.unit}
-                    onFocus={() => onRowActivate(rowIndex)}
-                    onKeyDown={handleEnterNavigation}
-                    onChange={(e) =>
-                      onRowChange(rowIndex, "unit", e.target.value)
-                    }
-                  >
-                    <option value=""></option>
-                    {SATUAN_OPTIONS.map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt}
-                      </option>
-                    ))}
-                  </select>
-                </TableField>
-                <TableField>
-                  <select
-                    className="input-field text-sm h-9"
-                    disabled={isDisabled}
-                    value={row.packaging}
-                    onFocus={() => onRowActivate(rowIndex)}
-                    onKeyDown={handleEnterNavigation}
-                    onChange={(e) =>
-                      onRowChange(rowIndex, "packaging", e.target.value)
-                    }
-                  >
-                    <option value=""></option>
-                    {JENIS_KEMASAN_OPTIONS.map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt}
-                      </option>
-                    ))}
-                  </select>
+                  <input
+                    type="text"
+                    className="input-field px-2 text-sm h-9 bg-slate-50 font-semibold"
+                    disabled={true}
+                    value={row.unit || "Ton"}
+                  />
                 </TableField>
                 <TableField className="text-center">
                   {!isDisabled && (
@@ -380,9 +299,9 @@ const EntryCategoryCard = ({
       </div>
 
       <div className="mt-5 pt-4 border-t border-slate-100">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide whitespace-nowrap overflow-hidden text-ellipsis">
               Jumlah LOA
             </div>
             <div className="text-lg font-bold text-slate-800">
@@ -390,35 +309,19 @@ const EntryCategoryCard = ({
             </div>
           </div>
           <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide whitespace-nowrap overflow-hidden text-ellipsis">
               Jumlah GRT
             </div>
             <div className="text-lg font-bold text-slate-800">
               {formatNumber(totalGrt)}
             </div>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2">
-            <div className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-              Keterangan Keseluruhan Barang
-            </div>
-            <div className="text-sm font-semibold text-slate-800 mt-1">
-              {descriptionText}
-            </div>
-          </div>
           <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-              Total Jumlah/Massa/Penumpang
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide whitespace-nowrap overflow-hidden text-ellipsis">
+              Total Jumlah/Massa
             </div>
             <div className="text-lg font-bold text-slate-800">
               {formatNumber(totalAmount)}
-            </div>
-          </div>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-            <div className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-              Keterangan Keseluruhan Satuan
-            </div>
-            <div className="text-sm font-semibold text-slate-800 mt-1">
-              {unitText}
             </div>
           </div>
         </div>
@@ -431,12 +334,13 @@ EntryCategoryCard.propTypes = {
   title: PropTypes.string.isRequired,
   rows: PropTypes.arrayOf(
     PropTypes.shape({
-      loa: PropTypes.number.isRequired,
-      grt: PropTypes.number.isRequired,
+      loa: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+      grt: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
       activity: PropTypes.string.isRequired,
       commodity: PropTypes.string.isRequired,
       description: PropTypes.string.isRequired,
-      amount: PropTypes.number.isRequired,
+      amount: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
+        .isRequired,
       unit: PropTypes.string.isRequired,
       packaging: PropTypes.string.isRequired,
     })
@@ -444,17 +348,48 @@ EntryCategoryCard.propTypes = {
   isDisabled: PropTypes.bool,
   onRowActivate: PropTypes.func.isRequired,
   onRowChange: PropTypes.func.isRequired,
-  onRowDelete: PropTypes.func,
+  onRowDelete: PropTypes.func.isRequired,
 };
 
 const EntryForm = (props) => {
   const { isDisabled, entryMonth, entryYear } = props;
-  const [entries, setEntries] = useState(createInitialEntriesState);
+  
+  // Initial state logic to load from localStorage
+  const getInitialState = () => {
+    try {
+      const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        // Only load if period matches or if we want to be flexible
+        // Let's load it regardless but keep it in mind
+        return parsed;
+      }
+    } catch (e) {
+      console.error("Failed to load draft", e);
+    }
+    return createInitialEntriesState();
+  };
+
+  const [entries, setEntries] = useState(getInitialState);
   const [draftStatus, setDraftStatus] = useState("saved");
   const isFirstRenderRef = useRef(true);
   const skipNextAutosaveRef = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+
+  const saveDraftToLocal = (data) => {
+    try {
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(data));
+      setDraftStatus("saved");
+    } catch (e) {
+      console.error("Failed to save draft", e);
+    }
+  };
+
+  const handleManualSave = () => {
+    saveDraftToLocal(entries);
+    toast.success("Draft berhasil disimpan");
+  };
 
   const updateRowField = (categoryKey, rowIndex, field, value) => {
     setDraftStatus("saving");
@@ -497,18 +432,13 @@ const EntryForm = (props) => {
   const handleSubmitData = async () => {
     setSubmitError("");
 
-    // Helper to normalize rows and ensure deprecated fields are sent as empty strings
+    // Helper to normalize rows and ensure numeric fields are numbers for the backend
     const normalizeRows = (rows) =>
       rows.filter(hasRowData).map((row) => ({
         ...row,
-        nama_kapal: row.nama_kapal || "",
-        negara: row.negara || "",
-        kepemilikan: row.kepemilikan || "",
-        tiba_pelabuhan: row.tiba_pelabuhan || "",
-        pelabuhan_tujuan: row.pelabuhan_tujuan || "",
-        tanggal_keberangkatan: row.tanggal_keberangkatan || "",
-        tanggal_kedatangan: row.tanggal_kedatangan || "",
-        tambat: row.tambat || "",
+        loa: parseInputNumber(row.loa),
+        grt: parseInputNumber(row.grt),
+        amount: parseInputNumber(row.amount),
       }));
 
     const payload = {
@@ -524,8 +454,11 @@ const EntryForm = (props) => {
       setIsSubmitting(true);
       await submitEntries(payload);
       skipNextAutosaveRef.current = true;
-      setEntries(createInitialEntriesState());
+      const initialState = createInitialEntriesState();
+      setEntries(initialState);
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
       setDraftStatus("saved");
+      toast.success("Data berhasil di-submit");
     } catch (err) {
       console.error("Submit failed", err);
       setSubmitError("Gagal mengirim data. Silakan coba lagi.");
@@ -546,9 +479,8 @@ const EntryForm = (props) => {
     }
 
     const timeoutId = window.setTimeout(() => {
-      console.log("Autosaving draft", entries);
-      setDraftStatus("saved");
-    }, 5000);
+      saveDraftToLocal(entries);
+    }, 2000);
 
     return () => window.clearTimeout(timeoutId);
   }, [entries]);
@@ -558,6 +490,15 @@ const EntryForm = (props) => {
       <div className="flex justify-end items-center gap-4">
         <button
           type="button"
+          className="btn bg-slate-100 text-slate-700 hover:bg-slate-200 border-none flex items-center"
+          onClick={handleManualSave}
+          disabled={isDisabled || isSubmitting}
+        >
+          <Save size={18} className="mr-2" />
+          Simpan Draft
+        </button>
+        <button
+          type="button"
           className="btn btn-primary"
           onClick={handleSubmitData}
           disabled={isDisabled || isSubmitting}
@@ -565,7 +506,7 @@ const EntryForm = (props) => {
           {isSubmitting ? "Submitting..." : "Submit Data"}
         </button>
         <div className="text-xs font-semibold text-slate-500">
-          {draftStatus === "saving" ? "Saving draft..." : "Saved ✓"}
+          {draftStatus === "saving" ? "Saving draft..." : "Draft Tersimpan ✓"}
         </div>
       </div>
       {submitError && (

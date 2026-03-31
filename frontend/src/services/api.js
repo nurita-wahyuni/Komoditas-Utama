@@ -30,6 +30,7 @@ export const loginUser = async (email, password) => {
   return response.data;
 };
 
+
 // --- Entries ---
 export const getEntries = async (params) => {
   const response = await api.get("/entries", { params });
@@ -81,11 +82,13 @@ export const getCommodityDistribution = async (year, operatorId) => {
   return response.data;
 };
 
-export const getWeeklyTrend = async () => {
-  const response = await api.get("/dashboard/weekly");
-  return response.data;
-};
+// REMOVED: getWeeklyTrend — backend endpoint deleted
+// export const getWeeklyTrend = async () => {
+//   const response = await api.get("/dashboard/weekly");
+//   return response.data;
+// };
 
+// संभावित future use – verify before deletion
 export const getYearlySummary = async (year, operatorId) => {
   const params = { tahun: year };
   if (operatorId) params.operator_id = operatorId;
@@ -97,7 +100,7 @@ export const getYearlySummary = async (year, operatorId) => {
 };
 
 export const getDraftCount = async (operatorId) => {
-  const response = await api.get("/my-draft-count", {
+  const response = await api.get("/entri/draft-count", {
     params: { operator_id: operatorId },
   });
   return response.data;
@@ -148,23 +151,27 @@ export const getAutoSubmitHistory = async (params) => {
   return response.data;
 };
 
-export const getRekapEntries = async (params) => {
-  const response = await api.get("/admin/rekap-entries", { params });
+export const getEntriesByGroup = async (operatorId, submittedAt) => {
+  const response = await api.get("/admin/entries/detail-by-group", {
+    params: { operator_id: operatorId, submitted_at: submittedAt },
+  });
   return response.data;
 };
 
-export const getAllRekapEntries = async (params) => {
-  const response = await api.get("/admin/rekap-entries/all", { params });
+export const getRekapEntries = async ({ category, start_date, end_date }) => {
+  const response = await api.get("/admin/rekap", {
+    params: { category, start_date, end_date },
+  });
   return response.data;
 };
 
-export const getSubmissionDetail = async (id) => {
-  const response = await api.get(`/entries/${id}`);
+export const getEntryDetail = async (id, params) => {
+  const response = await api.get(`/entries/${id}`, { params });
   return response.data;
 };
 
 // Alias for getSubmissionDetail if needed by other components
-export const getEntryDetail = getSubmissionDetail;
+export const getSubmissionDetail = getEntryDetail;
 
 export const updateEntryAdmin = async (id, data) => {
   const response = await api.put(`/admin/entries/${id}`, data);
@@ -173,25 +180,6 @@ export const updateEntryAdmin = async (id, data) => {
 
 export const deleteEntryAdmin = async (id) => {
   const response = await api.delete(`/admin/entries/${id}`);
-  return response.data;
-};
-
-// --- Reports ---
-export const getRekapFax = async () => {
-  const response = await api.get("/rekap-fax");
-  return response.data;
-};
-
-export const exportRekapFax = async (bulan, tahun) => {
-  const response = await api.get("/export/rekap-fax", {
-    params: { bulan, tahun },
-    responseType: "blob",
-  });
-  return response;
-};
-
-export const getSummary = async () => {
-  const response = await api.get("/summary");
   return response.data;
 };
 

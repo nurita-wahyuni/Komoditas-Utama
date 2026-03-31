@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from typing import Optional
-from app.core.security import verify_password, create_access_token, get_current_user
+from app.core.security import verify_password, create_access_token, get_current_user, get_password_hash
 from app.core.database import get_db_connection
 from app.schemas.schemas import Token, UserLogin
 import mysql.connector

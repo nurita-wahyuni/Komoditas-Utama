@@ -117,7 +117,7 @@ export default {
         full: "999px", // Pill Shape
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["Plus Jakarta Sans", "Inter", "system-ui", "sans-serif"],
       },
       boxShadow: {
         soft: "0 4px 20px -2px rgba(15, 42, 68, 0.05)", // Soft layered shadow

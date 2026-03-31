@@ -30,42 +30,18 @@ CREATE TABLE IF NOT EXISTS `ship_entries` (
     -- Core Data
     `tanggal_laporan` DATE NOT NULL,
     `kategori_pelayaran` ENUM('Luar Negeri', 'Dalam Negeri', 'Perintis', 'Rakyat') NOT NULL,
-    `nama_kapal` VARCHAR(150) NOT NULL,
     `jenis_kegiatan` ENUM('Bongkar', 'Muat') NOT NULL DEFAULT 'Bongkar',
-    
-    -- Additional Identity (Added v3.2)
-    `bendera` VARCHAR(50), -- Dropdown
-    `pemilik_agen` VARCHAR(150), -- Text input / Autocomplete
     
     -- Dimensions & Metrics
     `grt` DECIMAL(15, 2) DEFAULT 0,
     `loa` DECIMAL(10, 2) DEFAULT 0,
     
-    -- Cargo Details (New Structure)
-    `jenis_muatan` ENUM('Barang', 'Hewan', 'Manusia') NOT NULL DEFAULT 'Barang',
-    `komoditas` VARCHAR(100) DEFAULT NULL, -- New field for dropdown commodity
-    `nama_muatan` VARCHAR(150), -- Nama Barang / Jenis Hewan
-    `jumlah_muatan` DECIMAL(15, 3) DEFAULT 0, -- Jumlah Satuan / Jumlah Ekor / Jumlah Manusia
-    `satuan_muatan` VARCHAR(50), -- Ton, MT, Ekor, Orang
-    `jenis_kemasan` VARCHAR(50), -- Jenis Kemasan (Barang/Hewan)
+    -- Cargo Details
+    `komoditas` VARCHAR(100) DEFAULT NULL,
 
-    -- Legacy / Mapped Fields (For Backward Compatibility or Specific Reports)
-    `berat_ton` DECIMAL(15, 3) DEFAULT 0, -- Maps to jumlah_muatan if Barang
-    `jumlah_penumpang` INT DEFAULT 0, -- Maps to jumlah_muatan if Manusia
-    
-    -- Container Details (Optional/Expansion)
-    `teus_20_box` INT DEFAULT 0,
-    `teus_40_box` INT DEFAULT 0,
-    `container_status` ENUM('Isi', 'Kosong', 'N/A') DEFAULT 'N/A',
-
-    -- Schedule
-    `pelabuhan_asal` VARCHAR(100), -- Dropdown
-    `pelabuhan_tujuan` VARCHAR(100), -- Dropdown
-    `tanggal_kedatangan` DATETIME DEFAULT NULL,
-    `tanggal_tambat` DATETIME DEFAULT NULL, -- Added v3.2
-    `tanggal_keberangkatan` DATETIME DEFAULT NULL,
-    `dermaga` VARCHAR(100), -- Dropdown
-    `keterangan` TEXT, -- Textarea max 500 chars (TEXT fits plenty)
+    -- Legacy / Mapped Fields (For Backward Compatibility)
+    `berat_ton` DECIMAL(15, 3) DEFAULT 0,
+    `jumlah_penumpang` INT DEFAULT 0,
     
     -- Submit Metadata (v3.3)
     `submitted_at` DATETIME DEFAULT NULL,
@@ -105,14 +81,6 @@ CREATE TABLE IF NOT EXISTS `admin_audit_logs` (
     INDEX `idx_admin_audit_operator` (`operator_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 4. Create Holidays Table (v3.3)
-CREATE TABLE IF NOT EXISTS `holidays` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `tanggal` DATE UNIQUE NOT NULL,
-    `nama` VARCHAR(100),
-    INDEX `idx_holiday_date` (`tanggal`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 -- 5. Create Auto Submit Logs Table (v3.3)
 CREATE TABLE IF NOT EXISTS `auto_submit_logs` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -132,18 +100,3 @@ INSERT IGNORE INTO `users` (`id`, `nama`, `role`, `email`, `password_hash`) VALU
 INSERT IGNORE INTO `users` (`id`, `nama`, `role`, `email`, `password_hash`) VALUES 
 (1, 'Andi Pratama', 'OPERATOR', 'andi@example.com', '$2b$12$jDy7GASQcKluWx5hQ15UiuAiQs5/WTA1ZK41Dd7lUNee4ZEkxTTEK'),
 (2, 'Budi Santoso', 'OPERATOR', 'budi@example.com', '$2b$12$jDy7GASQcKluWx5hQ15UiuAiQs5/WTA1ZK41Dd7lUNee4ZEkxTTEK');
-
--- Sample Holidays (v3.3)
-INSERT IGNORE INTO `holidays` (`tanggal`, `nama`) VALUES 
-('2026-01-01', 'Tahun Baru 2026'),
-('2026-01-29', 'Tahun Baru Imlek 2577'),
-('2026-03-20', 'Hari Suci Nyepi'),
-('2026-03-21', 'Cuti Bersama Nyepi'),
-('2026-03-31', 'Idul Fitri 1447 H'),
-('2026-04-01', 'Idul Fitri 1447 H'),
-('2026-05-01', 'Hari Buruh Internasional'),
-('2026-05-14', 'Kenaikan Yesus Kristus'),
-('2026-06-01', 'Hari Lahir Pancasila'),
-('2026-08-17', 'Hari Kemerdekaan RI'),
-('2025-12-25', 'Hari Raya Natal'),
-('2025-12-26', 'Cuti Bersama Natal');

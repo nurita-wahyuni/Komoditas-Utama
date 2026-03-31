@@ -56,28 +56,20 @@ def seed_sample_data(
         )
         conn.commit()
 
-    SHIP_NAMES = [
-        "KM Nusantara", "MV Samudra", "KM Sejahtera", "KM Laut Biru", "MV Andalas",
-        "KM Merah Putih", "MV Borneo Star", "KM Baruna", "KM Tangguh", "MV Makassar"
-    ]
-    FLAGS = ["Indonesia", "Panama", "Liberia", "Singapore", "Malaysia", "Japan"]
-    PORTS = ["Tanjung Priok", "Belawan", "Makassar", "Batam", "Dumai", "Balikpapan", "Singapore", "Port Klang"]
-    BERTHS = ["Dermaga Umum 01", "Terminal Petikemas A", "Dermaga Curah Cair", "Dermaga Curah Kering"]
     CATEGORIES = ["Luar Negeri", "Dalam Negeri", "Perintis", "Rakyat"]
     ACTIVITIES = ["Bongkar", "Muat"]
     COMMODITIES = [
-        ("Sirtu", "M3", "Curah"),
-        ("BBM", "KL", "Curah"),
-        ("Motor", "unit", "Unit"),
-        ("Mobil", "unit", "Unit"),
-        ("Truk", "unit", "Unit"),
-        ("Bus", "unit", "Unit"),
-        ("Alat Berat", "unit", "Unit"),
-        ("Container (isi)", "Teus", "Box"),
-        ("Container (kosong)", "Teus", "Box"),
-        ("Beras", "Ton", "Bag"),
-        ("Garam", "Ton", "Curah"),
-        ("Besi", "Ton", "Bundle")
+        ("Sirtu", "M3"),
+        ("BBM", "KL"),
+        ("Beras", "Ton"),
+        ("Garam", "Ton"),
+        ("Besi", "Ton"),
+        ("Motor", "unit"),
+        ("Mobil", "unit"),
+        ("Truk", "unit"),
+        ("Bus", "unit"),
+        ("Alat Berat", "unit"),
+        ("Penumpang", "Orang")
     ]
 
     months = []
@@ -132,34 +124,20 @@ def seed_sample_data(
 
                 cat = random.choice(CATEGORIES)
                 act = random.choice(ACTIVITIES)
-
-                jenis_muatan = random.choice(["Barang", "Hewan", "Manusia"])
-                nama_muatan = ""
-                jumlah_muatan = 0
-                satuan_muatan = ""
-                jenis_kemasan = ""
+                
+                # Simple cargo generation
+                nm, satuan = random.choice(COMMODITIES)
+                nama_muatan = nm
+                satuan_muatan = satuan
+                jumlah_muatan = random.uniform(10, 1000)
+                
                 berat_ton = 0
                 jumlah_penumpang = 0
-
-                if jenis_muatan == "Manusia":
-                    nama_muatan = "Penumpang"
-                    jumlah_muatan = random.randint(10, 300)
-                    satuan_muatan = "Orang"
-                    jenis_kemasan = "-"
+                
+                if satuan_muatan in ['Ton', 'MT', 'KL']:
+                    berat_ton = jumlah_muatan
+                elif satuan_muatan == 'Orang':
                     jumlah_penumpang = int(jumlah_muatan)
-                elif jenis_muatan == "Hewan":
-                    nama_muatan = random.choice(["Sapi", "Kambing", "Kerbau"])
-                    jumlah_muatan = random.randint(10, 200)
-                    satuan_muatan = "Ekor"
-                    jenis_kemasan = "Kandang"
-                else:
-                    nm, satuan, kemasan = random.choice(COMMODITIES)
-                    nama_muatan = nm
-                    satuan_muatan = satuan
-                    jenis_kemasan = kemasan
-                    jumlah_muatan = random.uniform(10, 1000)
-                    if satuan_muatan in ['Ton', 'MT']:
-                        berat_ton = jumlah_muatan
 
                 # 6. Cargo Entry
                 entry = (
@@ -172,11 +150,6 @@ def seed_sample_data(
                     tgl, # Tanggal Laporan
                     op_id,
                     'SUBMITTED', # status
-                    jenis_muatan,
-                    nama_muatan,
-                    round(jumlah_muatan, 2),
-                    satuan_muatan,
-                    jenis_kemasan,
                     submitted_dt,
                     'AUTO'
                 )
@@ -188,9 +161,8 @@ def seed_sample_data(
                 jenis_kegiatan, berat_ton, jumlah_penumpang,
                 tanggal_laporan,
                 operator_id, status,
-                jenis_muatan, nama_muatan, jumlah_muatan, satuan_muatan, jenis_kemasan,
                 submitted_at, submit_method
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
             try:
                 cursor.executemany(insert_sql, values)
                 conn.commit()

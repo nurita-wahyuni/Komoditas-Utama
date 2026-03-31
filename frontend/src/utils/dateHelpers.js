@@ -20,3 +20,23 @@ export const isMonthDisabled = (monthIndex, selectedYear, currentDate = new Date
   // Same year: Disable if month is strictly greater than current month
   return monthIndex > currentMonth;
 };
+
+/**
+ * Formats a date string into a localized Indonesian date (e.g., 30 Maret 2026).
+ */
+export const formatDateIndo = (dateStr) => {
+  if (!dateStr) return "-";
+  return new Date(dateStr).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+};
+
+/**
+ * Formats a number with Indonesian thousand separators.
+ */
+export const formatNumberIndo = (num) => {
+  if (num === undefined || num === null || isNaN(num)) return "0";
+  return new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(num);
+};

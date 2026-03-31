@@ -50,6 +50,16 @@ const RekapDraftOperator = () => {
     fetchData();
   }, [filterType, sortOrder, page, limit]);
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return "-";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    }) + " " + date.toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' });
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -117,9 +127,9 @@ const RekapDraftOperator = () => {
               }}
               className="bg-transparent text-sm font-medium text-slate-700 outline-none cursor-pointer"
             >
-              <option value="latest">Terbaru (24 Jam)</option>
-              <option value="week">Seminggu yang lalu</option>
-              <option value="month">Sebulan yang lalu</option>
+              <option value="1_month">1 Bulan yang lalu</option>
+              <option value="3_months">3 Bulan yang lalu</option>
+              <option value="6_months">6 Bulan yang lalu</option>
               <option value="all">Semua (1 Tahun)</option>
             </select>
           </div>
@@ -159,15 +169,9 @@ const RekapDraftOperator = () => {
           <table className="w-full text-sm text-left text-slate-500">
             <thead className="text-xs text-slate-700 uppercase bg-slate-50 border-b border-slate-200">
               <tr>
-                <th className="px-6 py-4 font-semibold">Tanggal</th>
+                <th className="px-6 py-4 font-semibold">Tanggal Laporan</th>
                 <th className="px-6 py-4 font-semibold">Nama Operator</th>
-                <th className="px-6 py-4 font-semibold text-center">
-                  Nama Kapal / Bendera
-                </th>
-                <th className="px-6 py-4 font-semibold text-center">LOA (m)</th>
-                <th className="px-6 py-4 font-semibold text-center">
-                  Jenis Kegiatan
-                </th>
+                <th className="px-6 py-4 font-semibold text-center">Jumlah Data</th>
                 <th className="px-6 py-4 font-semibold text-right">Aksi</th>
               </tr>
             </thead>
@@ -184,12 +188,6 @@ const RekapDraftOperator = () => {
                     <td className="px-6 py-4">
                       <div className="h-4 bg-slate-200 rounded w-16 mx-auto"></div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="h-4 bg-slate-200 rounded w-16 mx-auto"></div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="h-4 bg-slate-200 rounded w-20 mx-auto"></div>
-                    </td>
                     <td className="px-6 py-4 text-right">
                       <div className="h-8 bg-slate-200 rounded w-24 ml-auto"></div>
                     </td>
@@ -198,13 +196,13 @@ const RekapDraftOperator = () => {
               ) : data.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="6"
+                    colSpan="4"
                     className="px-6 py-12 text-center text-slate-400"
                   >
                     <div className="flex flex-col items-center justify-center">
                       <Clock size={48} className="text-slate-200 mb-4" />
                       <p className="text-lg font-medium text-slate-500">
-                        Tidak ada riwayat auto-submit
+                        Tidak ada riwayat laporan
                       </p>
                       <p className="text-sm text-slate-400 mt-1">
                         Coba ubah filter waktu atau kata kunci pencarian.
@@ -220,43 +218,30 @@ const RekapDraftOperator = () => {
                   >
                     <td className="px-6 py-4 font-medium text-slate-900 flex items-center gap-2">
                       <Calendar size={14} className="text-slate-400" />
-                      {row.date}
+                      {formatDate(row.date)}
                     </td>
                     <td className="px-6 py-4 font-semibold text-slate-800">
                       {row.operator_name}
                     </td>
                     <td className="px-6 py-4 text-center">
-                      <div className="font-bold text-slate-800">{row.nama_kapal}</div>
-                      {row.bendera && (
-                        <div className="text-xs text-slate-500 mt-0.5">
-                          ({row.bendera})
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-center font-mono text-slate-600">
-                      {row.loa?.toFixed(2)}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`inline-flex px-2 py-1 rounded text-xs font-bold ${
-                        row.jenis_kegiatan === 'Bongkar' ? 'bg-orange-100 text-orange-700' : 'bg-emerald-100 text-emerald-700'
-                      }`}>
-                        {row.jenis_kegiatan}
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {row.total_entries} Data
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
                       <button
                         onClick={() =>
                           navigate(
-                            `/admin/rekap-operator/detail/${row.operator_id}/${
+                            `/admin/rekap-operator/detail/${row.operator_id}/${encodeURIComponent(
                               row.timestamp ||
-                              row.date.replace(" ", "T") + ":00"
-                            }`
+                                row.date.replace(" ", "T") + ":00"
+                            )}`
                           )
                         }
-                        className="inline-flex items-center px-3 py-1.5 bg-white border border-slate-200 text-slate-600 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 rounded-lg text-xs font-medium transition shadow-sm"
+                        className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-xs font-bold transition shadow-sm"
                       >
                         <ExternalLink size={14} className="mr-1.5" />
-                        Detail
+                        Lihat Detail
                       </button>
                     </td>
                   </tr>

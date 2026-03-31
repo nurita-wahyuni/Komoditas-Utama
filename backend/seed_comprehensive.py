@@ -178,11 +178,6 @@ def seed_data():
             report_date, # Tanggal Laporan
             operator_id,
             status,
-            jenis_muatan_db,
-            nama_muatan,
-            round(jumlah, 2),
-            satuan,
-            kemasan,
             submitted_at,
             submit_method,
             teus_20,
@@ -197,10 +192,10 @@ def seed_data():
         jenis_kegiatan, berat_ton, jumlah_penumpang,
         tanggal_laporan,
         operator_id, status,
-        jenis_muatan, nama_muatan, jumlah_muatan, satuan_muatan, jenis_kemasan,
         submitted_at, submit_method,
-        teus_20_box, teus_40_box, container_status, created_at
-    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
+        teus_20_box, teus_40_box, container_status,
+        created_at
+    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"""
     
     # Batch Insert
     batch_size = 100

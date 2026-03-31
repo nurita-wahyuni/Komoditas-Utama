@@ -29,13 +29,13 @@ def main():
         admin = cursor.fetchone()
         if not admin:
             print("Creating default admin user...")
-            pwd_hash = get_password_hash("admin123")
+            pwd_hash = get_password_hash("password123")
             cursor.execute(
                 "INSERT INTO users (nama, email, role, password_hash) VALUES (%s, %s, %s, %s)",
                 ("Administrator", "admin@example.com", "ADMIN", pwd_hash)
             )
             conn.commit()
-            print("Admin user created: admin@example.com / admin123")
+            print("Admin user created: admin@example.com / password123")
         else:
             print("Admin user check: OK.")
 

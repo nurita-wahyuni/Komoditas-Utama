@@ -1,14 +1,76 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Body
-from typing import List, Optional
+from typing import Optional
 from datetime import datetime, date
 from app.core.database import get_db_connection
 from app.core.security import get_current_user
-from app.schemas.schemas import ShipEntry, EntryUpdate, SubmitRequest
+from app.schemas.schemas import ShipEntry, EntryUpdate
 import logging
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+# --- HELPERS ---
+
+# REMOVED: is_batch argument — parameter defined but never used
+def process_entry_data(entry: ShipEntry, operator_id: int) -> dict:
+    """
+    Shared processing logic for single and batch entry submission.
+    Handles field validation, mapping, and data formatting.
+    """
+    # 1. Map Frontend fields to Database fields
+    loa = float(entry.loa or 0)
+    grt = float(entry.grt or 0)
+    
+    # Priority for 'jenis_kegiatan' then 'activity'
+    jenis_kegiatan = entry.jenis_kegiatan or entry.activity
+    
+    # Priority for 'komoditas' then 'commodity'
+    komoditas = entry.komoditas or entry.commodity
+    
+    # Priority for 'jumlah_muatan' then 'amount'
+    amount = float(entry.amount or 0)
+    
+    # Priority for 'satuan_muatan' then 'unit'
+    unit = entry.unit
+    
+    # Check if row has any significant data
+    has_data = any([
+        loa != 0,
+        grt != 0,
+        amount != 0,
+        bool(jenis_kegiatan)
+    ])
+    
+    if not has_data:
+        return None
+
+    # 2. Legacy Field Mapping
+    # Logic: if commodity/unit implies passengers, put in jumlah_penumpang
+    # Else put in berat_ton
+    berat_ton = float(entry.berat_ton or 0)
+    jumlah_penumpang = int(entry.jumlah_penumpang or 0)
+    
+    if amount > 0:
+        if unit in ["Orang", "Penumpang"]:
+            jumlah_penumpang = int(amount)
+        elif unit in ["Ton", "MT", "KL"]:
+            berat_ton = amount
+
+    # 3. Prepare Processed Dictionary
+    return {
+        "operator_id": operator_id,
+        "kategori_pelayaran": entry.kategori_pelayaran,
+        "loa": loa,
+        "grt": grt,
+        "jenis_kegiatan": jenis_kegiatan,
+        "komoditas": komoditas,
+        "tanggal_laporan": entry.tanggal_laporan or date.today(),
+        "berat_ton": berat_ton,
+        "jumlah_penumpang": jumlah_penumpang,
+        "status": "SUBMITTED",
+        "submit_method": "MANUAL"
+    }
 
 # --- OPERATOR ENDPOINTS ---
 
@@ -18,6 +80,7 @@ def get_all_entries(
     year: Optional[int] = None,
     month: Optional[int] = None,
     status: Optional[str] = None,
+    grouped: Optional[bool] = False,
     user: dict = Depends(get_current_user)
 ):
     conn = get_db_connection()
@@ -26,15 +89,50 @@ def get_all_entries(
         
     cursor = conn.cursor(dictionary=True)
     try:
-        # Build query dengan filter dinamis
-        conditions = []
-        params = []
-        
-        # operator_id might be None (not filtered), or an integer
-        # Frontend might pass 'undefined' string if not careful, so let's validate
+        # If OPERATOR, force their own ID
         if user['role'] == 'OPERATOR':
             operator_id = str(user['id'])
 
+        if grouped:
+            # Logic for grouped view (similar to admin auto-submit logs)
+            sql = """
+                SELECT 
+                    MIN(se.id) as id,
+                    se.submitted_at as timestamp,
+                    se.submitted_at as date,
+                    se.operator_id,
+                    u.nama as operator_name,
+                    COUNT(*) as total_entries,
+                    GROUP_CONCAT(DISTINCT se.jenis_kegiatan SEPARATOR ', ') as activities,
+                    GROUP_CONCAT(DISTINCT se.kategori_pelayaran SEPARATOR ', ') as categories,
+                    se.status
+                FROM ship_entries se
+                JOIN users u ON se.operator_id = u.id
+                WHERE se.status IN ('SUBMITTED', 'APPROVED')
+                  AND se.submitted_at IS NOT NULL
+                  AND (se.berat_ton > 0 OR se.jumlah_penumpang > 0 OR se.loa > 0 OR se.grt > 0)
+            """
+            params = []
+            if operator_id and operator_id.lower() != 'undefined':
+                sql += " AND se.operator_id = %s"
+                params.append(operator_id)
+            
+            sql += " GROUP BY se.operator_id, se.submitted_at, se.status ORDER BY se.submitted_at DESC"
+            cursor.execute(sql, tuple(params))
+            data = cursor.fetchall()
+            
+            # Format dates
+            for row in data:
+                if isinstance(row['date'], (datetime, date)):
+                    dt_obj = row['date']
+                    row['date'] = dt_obj.strftime('%Y-%m-%d %H:%M:%S')
+                    row['timestamp'] = dt_obj.strftime('%Y-%m-%d %H:%M:%S')
+            return data
+
+        # Original logic for non-grouped view
+        conditions = []
+        params = []
+        
         if operator_id and operator_id.lower() != 'undefined':
             conditions.append("operator_id = %s")
             params.append(operator_id)
@@ -68,49 +166,6 @@ def get_all_entries(
         cursor.close()
         conn.close()
 
-@router.get("/entries/periods")
-def get_entry_periods(
-    operator_id: Optional[int] = None,
-    user: dict = Depends(get_current_user)
-):
-    if user["role"] == "OPERATOR":
-        operator_id = user["id"]
-    if operator_id is None:
-        raise HTTPException(status_code=400, detail="Operator ID required")
-
-    conn = get_db_connection()
-    if not conn:
-        raise HTTPException(status_code=500, detail="Database tidak terhubung")
-    cursor = conn.cursor(dictionary=True)
-    try:
-        cursor.execute(
-            """
-            SELECT DISTINCT
-                YEAR(tanggal_laporan) AS tahun,
-                MONTH(tanggal_laporan) AS bulan
-            FROM ship_entries
-            WHERE operator_id = %s
-              AND status IN ('SUBMITTED', 'APPROVED')
-            ORDER BY tahun DESC, bulan DESC
-            """,
-            (operator_id,),
-        )
-        rows = cursor.fetchall()
-        months_by_year = {}
-        for r in rows:
-            y = int(r["tahun"])
-            m = int(r["bulan"])
-            months_by_year.setdefault(str(y), set()).add(m)
-
-        for y in list(months_by_year.keys()):
-            months_by_year[y] = sorted(list(months_by_year[y]))
-
-        years = sorted([int(y) for y in months_by_year.keys()], reverse=True)
-
-        return {"years": years, "months_by_year": months_by_year}
-    finally:
-        cursor.close()
-        conn.close()
 
 @router.post("/entries/report")
 def submit_batch_entries(
@@ -127,78 +182,51 @@ def submit_batch_entries(
         "rakyat": "Rakyat",
     }
 
-    def has_row_data(row: dict) -> bool:
-        if not isinstance(row, dict):
-            return False
-        loa = float(row.get("loa") or 0)
-        grt = float(row.get("grt") or 0)
-        activity = str(row.get("activity") or "").strip()
-        commodity = str(row.get("commodity") or "").strip()
-        description = str(row.get("description") or "").strip()
-        amount = float(row.get("amount") or 0)
-        unit = str(row.get("unit") or "").strip()
-        packaging = str(row.get("packaging") or "").strip()
-        return any([
-            loa != 0,
-            grt != 0,
-            bool(activity),
-            bool(commodity),
-            bool(description),
-            amount != 0,
-            bool(unit),
-            bool(packaging),
-        ])
-
     conn = get_db_connection()
     if not conn:
         raise HTTPException(status_code=500, detail="Database tidak terhubung")
 
     cursor = conn.cursor()
+    batch_timestamp = datetime.now()
+    
     insert_sql = """
         INSERT INTO ship_entries (
-            operator_id,
-            kategori_pelayaran,
-            loa,
-            grt,
-            jenis_kegiatan,
-            komoditas,
-            nama_muatan,
-            jumlah_muatan,
-            satuan_muatan,
-            jenis_kemasan,
-            tanggal_laporan,
-            status,
-            submitted_at,
-            submit_method
+            operator_id, kategori_pelayaran, loa, grt, jenis_kegiatan,
+            tanggal_laporan, status, submitted_at, submit_method,
+            berat_ton, jumlah_penumpang, komoditas
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURDATE(), 'SUBMITTED', NOW(), 'MANUAL')
+        VALUES (%s, %s, %s, %s, %s, CURDATE(), %s, %s, %s, %s, %s, %s)
     """
 
     total_rows = 0
     try:
         for cat_key, rows in (payload or {}).items():
             kategori = CATEGORY_MAP.get(cat_key)
-            if not kategori:
+            if not kategori or not isinstance(rows, list):
                 continue
-            if not isinstance(rows, list):
-                continue
-            for row in rows:
-                if not has_row_data(row):
-                    continue
-                values = (
-                    user["id"],
-                    kategori,
-                    float(row.get("loa") or 0),
-                    float(row.get("grt") or 0),
-                    (row.get("activity") or "Bongkar"),
-                    (row.get("commodity") or None),
-                    (row.get("description") or None),
-                    float(row.get("amount") or 0),
-                    (row.get("unit") or None),
-                    (row.get("packaging") or None),
-                )
-                cursor.execute(insert_sql, values)
-                total_rows += 1
+                
+            for row_dict in rows:
+                # Convert dict to ShipEntry for processing (partial validation)
+                try:
+                    # Mock a date since it's not in the batch row but required by schema
+                    row_dict["kategori_pelayaran"] = kategori
+                    
+                    entry_obj = ShipEntry(**row_dict)
+                    data = process_entry_data(entry_obj, user["id"])
+                    
+                    if not data:
+                        continue
+
+                    values = (
+                        data["operator_id"], data["kategori_pelayaran"], data["loa"], data["grt"], data["jenis_kegiatan"],
+                        data["status"], batch_timestamp, data["submit_method"],
+                        data["berat_ton"], data["jumlah_penumpang"],
+                        data["komoditas"]
+                    )
+                    cursor.execute(insert_sql, values)
+                    total_rows += 1
+                except Exception:
+                    continue # Skip invalid rows in batch
 
         conn.commit()
         return {"message": "Entries submitted successfully", "rows_inserted": total_rows}
@@ -207,46 +235,62 @@ def submit_batch_entries(
         logger.exception("Error submitting batch entries")
         raise HTTPException(status_code=500, detail="Gagal menyimpan data") from e
     finally:
-        try:
-            cursor.close()
-        finally:
-            conn.close()
+        cursor.close()
+        conn.close()
 
 @router.get("/entries/{entry_id}")
 def get_entry_detail(
-    entry_id: int,
+    entry_id: str, 
+    by_timestamp: bool = False,
+    operator_id: Optional[str] = None,
     user: dict = Depends(get_current_user)
 ):
     conn = get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=500, detail="Database tidak terhubung")
+        
     cursor = conn.cursor(dictionary=True)
     try:
-        query = """
-            SELECT 
-                se.*, 
-                u.nama as operator_name 
-            FROM ship_entries se
-            LEFT JOIN users u ON se.operator_id = u.id
-            WHERE se.id = %s
-        """
-        cursor.execute(query, (entry_id,))
-        entry = cursor.fetchone()
-        
-        if not entry:
-            raise HTTPException(status_code=404, detail="Data tidak ditemukan")
+        if by_timestamp:
+            # Fetch all entries for that timestamp group
+            # If operator, ensure they only see their own
+            if user['role'] == 'OPERATOR':
+                operator_id = str(user['id'])
+                
+            sql = """
+                SELECT se.*, u.nama as operator_name 
+                FROM ship_entries se
+                JOIN users u ON se.operator_id = u.id
+                WHERE se.submitted_at = %s
+            """
+            params = [entry_id] # entry_id is the timestamp string
             
-        # Security check: 
-        # - Admin can view all
-        # - Operator can only view their own
-        # - Viewer can view all (assuming read-only access)
-        
-        is_admin = user['role'] == 'ADMIN'
-        is_viewer = user['role'] == 'VIEWER'
-        is_owner = str(entry['operator_id']) == str(user['id'])
-        
-        if not is_admin and not is_viewer and not is_owner:
-             raise HTTPException(status_code=403, detail="Anda tidak memiliki akses ke data ini")
-             
-        return entry
+            if operator_id:
+                sql += " AND se.operator_id = %s"
+                params.append(operator_id)
+                
+            sql += " AND (se.berat_ton > 0 OR se.jumlah_penumpang > 0 OR se.loa > 0 OR se.grt > 0)"
+            cursor.execute(sql, tuple(params))
+            entries = cursor.fetchall()
+            
+            if not entries:
+                raise HTTPException(status_code=404, detail="Laporan tidak ditemukan")
+                
+            # Return as a structured report
+            return {
+                "timestamp": entry_id,
+                "operator_name": entries[0]['operator_name'],
+                "status": entries[0]['status'],
+                "entries": entries
+            }
+        else:
+            # Original single entry logic
+            sql = "SELECT se.*, u.nama as operator_name FROM ship_entries se JOIN users u ON se.operator_id = u.id WHERE se.id = %s"
+            cursor.execute(sql, (entry_id,))
+            entry = cursor.fetchone()
+            if not entry:
+                raise HTTPException(status_code=404, detail="Entri tidak ditemukan")
+            return entry
     finally:
         cursor.close()
         conn.close()
@@ -263,27 +307,21 @@ def save_entries(entry: ShipEntry, user: dict = Depends(get_current_user)):
     
     cursor = conn.cursor()
     try:
-        # Override operator_id
-        entry.operator_id = user['id']
+        data = process_entry_data(entry, user['id'], is_batch=False)
+        if not data:
+            raise HTTPException(status_code=400, detail="Data entri tidak lengkap")
 
-        # Query untuk menyimpan data ke tabel ship_entries
-        # MODIFIED: Default status changed from 'DRAFT' to 'SUBMITTED'
         sql = """INSERT INTO ship_entries (
-            kategori_pelayaran, loa, grt, 
-            jenis_kegiatan, berat_ton, jumlah_penumpang,
-            tanggal_laporan,
-            operator_id, status,
-            jenis_muatan, nama_muatan, jumlah_muatan, satuan_muatan, jenis_kemasan,
-            submitted_at, submit_method
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'SUBMITTED', %s, %s, %s, %s, %s, NOW(), 'MANUAL')"""
+            operator_id, kategori_pelayaran, loa, grt, jenis_kegiatan,
+            tanggal_laporan, status, submitted_at, submit_method,
+            berat_ton, jumlah_penumpang, komoditas
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW(), %s, %s, %s, %s)"""
         
-        # Mapping data dari request body ke format tuple untuk MySQL
         values = (
-            entry.kategori_pelayaran, entry.loa, entry.grt,
-            entry.jenis_kegiatan, entry.berat_ton, entry.jumlah_penumpang,
-            entry.tanggal_laporan,
-            entry.operator_id,
-            entry.jenis_muatan, entry.nama_muatan, entry.jumlah_muatan, entry.satuan_muatan, entry.jenis_kemasan
+            data["operator_id"], data["kategori_pelayaran"], data["loa"], data["grt"], data["jenis_kegiatan"],
+            data["tanggal_laporan"], data["status"], data["submit_method"],
+            data["berat_ton"], data["jumlah_penumpang"],
+            data["komoditas"]
         )
         
         cursor.execute(sql, values)
@@ -298,7 +336,7 @@ def save_entries(entry: ShipEntry, user: dict = Depends(get_current_user)):
         cursor.close()
         conn.close()
 
-@router.put("/entries/{id}")
+@router.put("/entri/{id}")
 def update_entry(id: int, entry: ShipEntry, user: dict = Depends(get_current_user)):
     # SECURITY CHECK
     if user['role'] != 'OPERATOR':
@@ -326,6 +364,11 @@ def update_entry(id: int, entry: ShipEntry, user: dict = Depends(get_current_use
             raise HTTPException(status_code=400, detail="Data sudah disetujui (APPROVED) dan tidak bisa diedit")
             
         # 2. Update Data
+        # Process entry using helper
+        data = process_entry_data(entry, user['id'])
+        if not data:
+             raise HTTPException(status_code=400, detail="Data update tidak valid")
+
         sql = """UPDATE ship_entries SET
             kategori_pelayaran = %s,
             loa = %s,
@@ -334,19 +377,14 @@ def update_entry(id: int, entry: ShipEntry, user: dict = Depends(get_current_use
             berat_ton = %s,
             jumlah_penumpang = %s,
             tanggal_laporan = %s,
-            jenis_muatan = %s,
-            nama_muatan = %s,
-            jumlah_muatan = %s,
-            satuan_muatan = %s,
-            jenis_kemasan = %s
+            komoditas = %s
             WHERE id = %s
         """
         
         values = (
-            entry.kategori_pelayaran, entry.loa, entry.grt,
-            entry.jenis_kegiatan, entry.berat_ton, entry.jumlah_penumpang,
-            entry.tanggal_laporan,
-            entry.jenis_muatan, entry.nama_muatan, entry.jumlah_muatan, entry.satuan_muatan, entry.jenis_kemasan,
+            data["kategori_pelayaran"], data["loa"], data["grt"],
+            data["jenis_kegiatan"], data["berat_ton"], data["jumlah_penumpang"],
+            data["tanggal_laporan"], data["komoditas"],
             id
         )
         
@@ -510,7 +548,7 @@ def delete_entry_admin(id: int, user: dict = Depends(get_current_user)):
         cursor.close()
         conn.close()
 
-@router.get("/entries/draft-count")
+@router.get("/entri/draft-count")
 def get_my_draft_count(operator_id: Optional[int] = None, user: dict = Depends(get_current_user)):
     # SECURITY LOGIC
     target_operator_id = operator_id

@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   getYearlySummary, 
-  getDashboardTrend
+  getDashboardTrend,
+  getDraftCount
 } from "../../../services/api";
 import SummaryCard from "../../../components/shared/SummaryCard";
 import {
@@ -24,17 +25,23 @@ import {
 } from "recharts";
 import { useAuth } from "../../../context/AuthContext";
 
-const CARGO_COLORS = [
-  "#2563EB", // Blue-600
-  "#22C55E", // Green-500
-  "#F59E0B", // Amber-500
-  "#EF4444", // Red-500
-  "#8B5CF6", // Purple-500
-  "#06B6D4", // Cyan-500
-];
+const CARGO_COLORS = {
+  "Luar Negeri": "#3B82F6", // Blue-500
+  "Dalam Negeri": "#22C55E", // Green-500
+  "Lainnya": "#64748B", // Slate-500
+};
 
 const getColor = (name, index) => {
-  return CARGO_COLORS[index % CARGO_COLORS.length];
+  if (CARGO_COLORS[name]) return CARGO_COLORS[name];
+  const colors = [
+    "#2563EB", // Blue-600
+    "#22C55E", // Green-500
+    "#F59E0B", // Amber-500
+    "#EF4444", // Red-500
+    "#8B5CF6", // Purple-500
+    "#06B6D4", // Cyan-500
+  ];
+  return colors[index % colors.length];
 };
 
 // Custom Tooltip for Trend (Line Chart)
@@ -76,8 +83,8 @@ const OperatorDashboard = () => {
   const yearOptions = [currentYear, currentYear - 1, currentYear - 2];
 
   const [selectedTrendYear, setSelectedTrendYear] = useState(currentYear);
-  const [trendType, setTrendType] = useState("Bongkar");
-  const [trendData, setTrendData] = useState([]);
+  const [trendType, setTrendType] = useState("Luar Negeri");
+  const [trendData, setTrendData] = useState({ bongkar: [], muat: [] });
   const [trendSeries, setTrendSeries] = useState([]);
 
   const [summaryData, setSummaryData] = useState({
@@ -85,6 +92,7 @@ const OperatorDashboard = () => {
     total_loa: 0,
   });
 
+  const [draftCount, setDraftCount] = useState(0);
   const [trendLoading, setTrendLoading] = useState(false);
 
   const PERIODE_TEXT = `Tahun ${selectedTrendYear}`;
@@ -106,6 +114,10 @@ const OperatorDashboard = () => {
             totalUnit += parseInt(item.total_unit || 0);
             totalLoa += parseFloat(item.total_loa || 0);
           });
+        } else if (summaryRes && typeof summaryRes === 'object') {
+          // If response is a single object
+          totalUnit = parseInt(summaryRes.total_unit || 0);
+          totalLoa = parseFloat(summaryRes.total_loa || 0);
         }
 
         setSummaryData({
@@ -119,6 +131,11 @@ const OperatorDashboard = () => {
 
     if (user?.id) {
       fetchSummary();
+      
+      // Fetch draft count
+      getDraftCount(user.id)
+        .then(res => setDraftCount(res.draft_count || 0))
+        .catch(err => console.error("Gagal ambil draft count:", err));
     }
   }, [user, selectedTrendYear]);
 
@@ -128,12 +145,15 @@ const OperatorDashboard = () => {
       try {
         setTrendLoading(true);
         const res = await getDashboardTrend(selectedTrendYear, trendType);
-        // Backend now returns { series: [...], data: [...] }
-        setTrendData(res.data || []);
+        // Backend now returns { series: [...], bongkar: [...], muat: [...] }
+        setTrendData({
+          bongkar: res.bongkar || [],
+          muat: res.muat || [],
+        });
         setTrendSeries(res.series || []);
       } catch (error) {
         console.error("Failed to fetch trend data", error);
-        setTrendData([]);
+        setTrendData({ bongkar: [], muat: [] });
         setTrendSeries([]);
       } finally {
         setTrendLoading(false);
@@ -142,6 +162,140 @@ const OperatorDashboard = () => {
 
     fetchTrend();
   }, [selectedTrendYear, trendType]);
+
+  const renderTrendChart = (title, data) => (
+    <div className="rounded-xl bg-white shadow-sm p-6 border border-slate-100 h-[500px] flex flex-col">
+      <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <TrendingUp size={20} className="text-blue-600" />
+            {title} {trendType} (Januari - Desember)
+          </h3>
+        </div>
+
+        <div className="flex items-center gap-3 mt-2 md:mt-0">
+          <select
+            className="bg-slate-50 text-sm font-semibold text-slate-600 border border-slate-200 rounded-lg px-2 py-1 focus:outline-none cursor-pointer hover:border-blue-500/50"
+            value={selectedTrendYear}
+            onChange={(e) => setSelectedTrendYear(Number(e.target.value))}
+          >
+            {yearOptions.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+          <div className="flex bg-slate-50 rounded-lg p-1 border border-slate-200">
+            {["Luar Negeri", "Dalam Negeri"].map((type) => (
+              <button
+                key={type}
+                onClick={() => setTrendType(type)}
+                className={`px-3 py-1 text-xs font-bold rounded-md transition-all duration-200 ${
+                  trendType === type
+                    ? "bg-white text-blue-600 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 w-full min-w-0 min-h-0 relative mt-4">
+        {trendLoading ? (
+          <div className="h-full flex flex-col items-center justify-center text-slate-400 animate-pulse">
+            <Loader2 size={32} className="animate-spin mb-2 text-blue-600" />
+            <span className="text-xs font-medium uppercase tracking-widest">
+              Memuat data grafik...
+            </span>
+          </div>
+        ) : data.length === 0 ? (
+          <div className="h-full w-full flex items-center justify-center bg-slate-50 rounded-xl border border-dashed border-slate-200">
+            <div className="text-center text-slate-400">
+              <TrendingUp size={48} className="mx-auto mb-3 opacity-20" />
+              <p className="font-medium">Tidak ada data tren</p>
+            </div>
+          </div>
+        ) : (
+          <div className="w-full h-full">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+              <LineChart
+                data={data}
+                margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="#F1F5F9"
+                />
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: "#94A3B8", fontWeight: 600 }}
+                  dy={10}
+                  padding={{ left: 10, right: 10 }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: "#94A3B8", fontWeight: 600 }}
+                  label={{
+                    value: "Volume (Ton)",
+                    angle: -90,
+                    position: "insideLeft",
+                    style: {
+                      textAnchor: "middle",
+                      fill: "#94A3B8",
+                      fontSize: 12,
+                      fontWeight: 600,
+                    },
+                  }}
+                  tickFormatter={(value) => value.toLocaleString("id-ID")}
+                />
+                <Tooltip content={<CustomTrendTooltip />} cursor={{ stroke: '#CBD5E1', strokeWidth: 1, strokeDasharray: '4 4' }} />
+                <Legend
+                  verticalAlign="top"
+                  height={36}
+                  iconType="circle"
+                  wrapperStyle={{
+                    top: -10,
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    color: "#64748B",
+                  }}
+                />
+                {trendSeries.map((serie, index) => (
+                  <Line
+                    key={serie}
+                    type="monotone"
+                    dataKey={serie}
+                    name={serie}
+                    stroke={getColor(serie, index)}
+                    strokeWidth={3}
+                    dot={{
+                      r: 5,
+                      stroke: "#ffffff",
+                      strokeWidth: 2,
+                      fill: getColor(serie, index),
+                    }}
+                    activeDot={{
+                      r: 7,
+                      strokeWidth: 0,
+                      fill: getColor(serie, index),
+                    }}
+                    animationDuration={1500}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-8">
@@ -153,9 +307,7 @@ const OperatorDashboard = () => {
           </h1>
           <p className="text-text-secondary mt-1 text-sm">
             Pantau kinerja operasional Anda untuk periode{" "}
-            <span className="font-semibold text-primary">
-              {PERIODE_TEXT}
-            </span>
+            <span className="font-semibold text-primary">{PERIODE_TEXT}</span>
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -170,7 +322,7 @@ const OperatorDashboard = () => {
       </div>
 
       {/* Summary Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <SummaryCard
           title="Total Kunjungan"
           value={summaryData.total_unit}
@@ -189,125 +341,20 @@ const OperatorDashboard = () => {
           icon={<Anchor size={24} />}
           color="red"
         />
+        <SummaryCard
+          title="Draft Tersimpan"
+          value={draftCount}
+          subtext="Belum Disubmit"
+          icon={<FileText size={24} />}
+          color="amber"
+          onClick={() => navigate("/entri")}
+        />
       </div>
 
-      {/* Analytics Section */}
-      <div className="grid grid-cols-1 gap-8">
-        {/* Trend Chart (Full Width) */}
-        <div className="rounded-xl bg-white shadow-sm p-6 border border-slate-100 h-[500px] flex flex-col">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
-            <div>
-              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <TrendingUp size={20} className="text-blue-600" />
-                Tren Realisasi Muatan Per Jenis Barang (Januari - Desember)
-              </h3>
-            </div>
-            
-            {/* Filters */}
-            <div className="flex items-center gap-3 mt-2 md:mt-0">
-               <select
-                className="bg-slate-50 text-sm font-semibold text-slate-600 border border-slate-200 rounded-lg px-2 py-1 focus:outline-none cursor-pointer hover:border-blue-500/50"
-                value={selectedTrendYear}
-                onChange={(e) => setSelectedTrendYear(Number(e.target.value))}
-              >
-                {yearOptions.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-              <div className="flex bg-slate-50 rounded-lg p-1 border border-slate-200">
-                {["Bongkar", "Muat"].map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => setTrendType(type)}
-                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all duration-200 ${
-                      trendType === type
-                        ? "bg-white text-blue-600 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700"
-                    }`}
-                  >
-                    {type}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex-1 w-full min-w-0 min-h-0 relative mt-4">
-            {trendLoading ? (
-              <div className="h-full flex flex-col items-center justify-center text-slate-400 animate-pulse">
-                <Loader2
-                  size={32}
-                  className="animate-spin mb-2 text-blue-600"
-                />
-                <span className="text-xs font-medium uppercase tracking-widest">
-                  Memuat data grafik...
-                </span>
-              </div>
-            ) : (
-              <div className="w-full h-full">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                  <LineChart
-                    data={trendData}
-                    margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
-                  >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      vertical={false}
-                      stroke="#F1F5F9"
-                    />
-                    <XAxis
-                      dataKey="name"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 11, fill: "#94A3B8", fontWeight: 600 }}
-                      dy={10}
-                      padding={{ left: 10, right: 10 }}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 11, fill: "#94A3B8", fontWeight: 600 }}
-                      label={{ 
-                        value: 'Volume (Ton)', 
-                        angle: -90, 
-                        position: 'insideLeft',
-                        style: { textAnchor: 'middle', fill: '#94A3B8', fontSize: 12, fontWeight: 600 }
-                      }}
-                      tickFormatter={(value) => value.toLocaleString("id-ID")}
-                    />
-                    <Tooltip content={<CustomTrendTooltip />} cursor={{ stroke: '#CBD5E1', strokeWidth: 1, strokeDasharray: '4 4' }} />
-                    <Legend 
-                      verticalAlign="top" 
-                      height={36} 
-                      iconType="circle"
-                      wrapperStyle={{ top: -10, fontSize: '12px', fontWeight: 600, color: '#64748B' }}
-                    />
-                    
-                    {trendSeries.map((serie, index) => (
-                      <Line
-                        key={serie}
-                        type="monotone"
-                        dataKey={serie}
-                        stroke={getColor(serie, index)}
-                        strokeWidth={3}
-                        dot={{ 
-                          r: 5, 
-                          stroke: "#ffffff", 
-                          strokeWidth: 2, 
-                          fill: getColor(serie, index) 
-                        }}
-                        activeDot={{ r: 7, strokeWidth: 0 }}
-                        animationDuration={1500}
-                      />
-                    ))}
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </div>
-        </div>
+      {/* Analytics Section - Split into 2 charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {renderTrendChart("Tren Realisasi Muatan Bongkar", trendData.bongkar)}
+        {renderTrendChart("Tren Realisasi Muatan Muat", trendData.muat)}
       </div>
     </div>
   );

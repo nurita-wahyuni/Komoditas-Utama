@@ -7,7 +7,6 @@ bcrypt==3.2.2
 python-multipart
 python-dotenv
 apscheduler
-openpyxl
 pydantic
 requests
 pytz

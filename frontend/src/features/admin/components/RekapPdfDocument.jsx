@@ -8,8 +8,9 @@ import {
   Image,
   Font,
 } from "@react-pdf/renderer";
+import { formatDateIndo, formatNumberIndo } from "../../../utils/dateHelpers";
 
-// Register fonts if needed, otherwise use default Helvetica
+// Register fonts if needed
 Font.register({
   family: "Roboto",
   src: "https://cdnjs.cloudflare.com/ajax/libs/ink/3.1.10/fonts/Roboto/roboto-light-webfont.ttf",
@@ -17,385 +18,363 @@ Font.register({
 
 const styles = StyleSheet.create({
   page: {
-    padding: 20, // Reduced padding
-    paddingTop: 30,
-    fontSize: 9, // Slightly smaller font
+    padding: 40,
+    fontSize: 9,
     fontFamily: "Helvetica",
+    backgroundColor: "#ffffff",
+    position: "relative",
   },
+  // Page Border
+  pageBorder: {
+    position: "absolute",
+    top: 20,
+    left: 20,
+    right: 20,
+    bottom: 20,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    pointerEvents: "none",
+  },
+  // Watermark
+  watermark: {
+    position: "absolute",
+    top: "40%",
+    left: "15%",
+    fontSize: 60,
+    color: "#F1F5F9",
+    opacity: 0.5,
+    transform: "rotate(-45deg)",
+    fontWeight: "bold",
+    zIndex: -1,
+  },
+  // Header Style: Official Letterhead
   headerContainer: {
     flexDirection: "row",
-    marginBottom: 10, // Reduced margin
-    borderBottomWidth: 1.5,
-    borderBottomColor: "#000",
-    paddingBottom: 5,
+    marginBottom: 5,
+    paddingBottom: 10,
     alignItems: "center",
   },
   logo: {
-    width: 50,
-    height: 35,
-    marginRight: 10,
+    width: 60,
+    height: 45,
+    marginRight: 15,
   },
   headerTextContainer: {
-    flexDirection: "column",
-    justifyContent: "center",
+    flex: 1,
+    textAlign: "center",
   },
-  headerTitle: {
-    fontSize: 12,
+  headerInstitution: {
+    fontSize: 14,
     fontWeight: "bold",
     marginBottom: 2,
-    textTransform: "uppercase",
-  },
-  headerSubtitle: {
-    fontSize: 10,
-    fontWeight: "bold",
-    marginBottom: 2,
-    textTransform: "uppercase",
   },
   headerAddress: {
-    fontSize: 7,
+    fontSize: 8,
     color: "#333",
+    lineHeight: 1.2,
   },
-  title: {
+  headerDivider: {
+    borderBottomWidth: 2,
+    borderBottomColor: "#000",
+    marginBottom: 15,
+  },
+  // Report Title Section
+  titleSection: {
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  reportTitle: {
     fontSize: 12,
     fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 2,
-    marginTop: 5,
-    textTransform: "uppercase",
-  },
-  subtitle: {
-    fontSize: 9,
-    textAlign: "center",
-    marginBottom: 10,
-  },
-  contentContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    flexWrap: "wrap",
-  },
-  column: {
-    width: "48%", // Split into two columns
-  },
-  section: {
+    textDecoration: "underline",
     marginBottom: 5,
   },
-  sectionTitle: {
+  reportSubtitle: {
     fontSize: 9,
-    fontWeight: "bold",
-    backgroundColor: "#f0f0f0",
-    padding: 3,
-    marginBottom: 2,
-    borderBottomWidth: 0.5,
-    borderBottomColor: "#ccc",
+    color: "#333",
+  },
+  // Table Styling
+  table: {
+    width: "auto",
+    borderStyle: "solid",
+    borderWidth: 1,
+    borderColor: "#000",
+    borderRightWidth: 0,
+    borderBottomWidth: 0,
   },
   tableRow: {
+    margin: "auto",
     flexDirection: "row",
-    borderBottomWidth: 0.5,
-    borderBottomColor: "#eee",
-    minHeight: 14, // Compact row height
-    alignItems: "center",
-    paddingVertical: 1,
   },
-  tableColLabel: {
-    width: "60%",
-    paddingLeft: 5,
-  },
-  tableColValue: {
-    width: "40%",
-    textAlign: "right",
-    paddingRight: 5,
-  },
-  subHeader: {
-    fontSize: 9,
+  tableHeaderCell: {
+    backgroundColor: "#f0f0f0",
+    borderStyle: "solid",
+    borderWidth: 1,
+    borderColor: "#000",
+    borderLeftWidth: 0,
+    borderTopWidth: 0,
+    padding: 5,
     fontWeight: "bold",
-    marginTop: 3,
-    marginBottom: 1,
-    paddingLeft: 5,
-    fontStyle: "italic",
+    textAlign: "center",
+  },
+  tableCell: {
+    borderStyle: "solid",
+    borderWidth: 1,
+    borderColor: "#000",
+    borderLeftWidth: 0,
+    borderTopWidth: 0,
+    padding: 5,
+    textAlign: "left",
+  },
+  // Column Widths
+  colNo: { width: "5%" },
+  colDate: { width: "15%" },
+  colActivity: { width: "15%" },
+  colCommodity: { width: "35%" },
+  colVolume: { width: "15%" },
+  colUnit: { width: "15%" },
+  
+  // Summary Section
+  summarySection: {
+    marginTop: 20,
+    padding: 10,
+    backgroundColor: "#f9f9f9",
+    borderWidth: 1,
+    borderColor: "#ccc",
+  },
+  summaryTitle: {
+    fontSize: 10,
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
+  summaryItem: {
+    flexDirection: "row",
+    marginBottom: 3,
+  },
+  summaryLabel: {
+    width: 150,
+    fontWeight: "bold",
+  },
+  summaryValue: {
+    flex: 1,
+  },
+  // Footer: Signature Section
+  footerSection: {
+    marginTop: 30,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  signatureContainer: {
+    width: 200,
+    textAlign: "center",
+  },
+  signatureSpace: {
+    height: 50,
+  },
+  signatureName: {
+    fontWeight: "bold",
+    textDecoration: "underline",
+  },
+  pageNumber: {
+    position: "absolute",
+    bottom: 30,
+    left: 0,
+    right: 0,
+    textAlign: "center",
+    fontSize: 8,
+    color: "#666",
   },
 });
 
-const Header = () => (
-  <View style={styles.headerContainer}>
-    {/* Explicitly construct URL to ensure it works in both dev and production if base path is root */}
-    <Image 
-      style={styles.logo} 
-      src="/logo-bps.png" 
-    />
-    <View style={styles.headerTextContainer}>
-      <Text style={styles.headerTitle}>BADAN PUSAT STATISTIK</Text>
-      <Text style={styles.headerSubtitle}>KOTA BONTANG</Text>
-      <Text style={styles.headerAddress}>Jl. Awang Long No 2, Bontang Baru, Kec. Bontang Utara, Kota Bontang</Text>
-      <Text style={styles.headerAddress}>Telp (0548) 26066 Homepage: https://bontangkota.bps.go.id/ E-mail: bps6474@bps.go.id</Text>
+const OfficialHeader = () => (
+  <View fixed>
+    <View style={styles.headerContainer}>
+      <Image style={styles.logo} src="/logo-bps.png" />
+      <View style={styles.headerTextContainer}>
+        <Text style={styles.headerInstitution}>BADAN PUSAT STATISTIK KOTA BONTANG</Text>
+        <Text style={styles.headerAddress}>
+          Jl. Awang Long No 2, Bontang Baru, Kec. Bontang Utara, Kota Bontang
+        </Text>
+        <Text style={styles.headerAddress}>
+          Telepon: (0548) 26066 | Website: https://bontangkota.bps.go.id | Email: bps6474@bps.go.id
+        </Text>
+      </View>
     </View>
+    <View style={styles.headerDivider} />
   </View>
 );
 
-const CategoryPage = ({ category, data, startDate, endDate }) => {
-  const formatNumber = (num) => {
-    if (num === undefined || num === null) return "-";
-    return new Intl.NumberFormat("id-ID", { maximumFractionDigits: 2 }).format(
-      num
-    );
-  };
+const SummarySection = ({ data, entries }) => {
+  // Use pre-calculated data from backend if available, fallback to basic calc
+  const totalVisits = data?.header?.unit || entries.length;
+  
+  // Get total cargo from pre-calculated summary (TON dan MT aggregate)
+  const bongkarTotal = data?.bongkar?.["TON dan MT"]?.value || 0;
+  const muatTotal = data?.muat?.["TON dan MT"]?.value || 0;
+  const totalCargo = bongkarTotal + muatTotal;
 
-  if (!data)
-    return (
-      <Page style={styles.page}>
-        <Text>Loading data...</Text>
-      </Page>
-    );
-
-  // Helper to extract value safely
-  const getVal = (type, key) => data[type]?.[key]?.value || 0;
-  const getCVal = (type, status, size) =>
-    data.container_stats?.[type]?.[status]?.[size] || 0;
+  // If pre-calculated is 0, fallback to basic sum of entries (for safety)
+  const displayCargo = totalCargo > 0 ? totalCargo : entries.reduce((acc, curr) => acc + (parseFloat(curr.jumlah_muatan) || 0), 0);
 
   return (
-    <Page size="A4" style={styles.page}>
-      <Header />
-
-      <Text style={styles.title}>
-        REKAPITULASI DATA PELAYARAN {category.toUpperCase()}
-      </Text>
-      <Text style={styles.subtitle}>
-        Periode: {startDate} s/d {endDate}
-      </Text>
-
-      <View style={styles.contentContainer}>
-        {/* LEFT COLUMN */}
-        <View style={styles.column}>
-          {/* 1. Kunjungan Kapal */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>1. Kunjungan Kapal</Text>
-            <View style={styles.tableRow}>
-              <Text style={styles.tableColLabel}>Unit</Text>
-              <Text style={styles.tableColValue}>
-                {formatNumber(data.header.unit)}
-              </Text>
-            </View>
-            <View style={styles.tableRow}>
-              <Text style={styles.tableColLabel}>GRT</Text>
-              <Text style={styles.tableColValue}>
-                {formatNumber(data.header.total_grt)}
-              </Text>
-            </View>
-            <View style={styles.tableRow}>
-              <Text style={styles.tableColLabel}>LOA (Panjang)</Text>
-              <Text style={styles.tableColValue}>
-                {formatNumber(data.header.total_loa)}
-              </Text>
-            </View>
-          </View>
-
-          {/* 2. Barang / Perdagangan */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              2. Barang/Perdagangan (Ton/MT)
-            </Text>
-            <View style={styles.tableRow}>
-              <Text style={styles.tableColLabel}>Bongkar</Text>
-              <Text style={styles.tableColValue}>
-                {formatNumber(getVal("bongkar", "TON dan MT"))}
-              </Text>
-            </View>
-            <View style={styles.tableRow}>
-              <Text style={styles.tableColLabel}>Muat</Text>
-              <Text style={styles.tableColValue}>
-                {formatNumber(getVal("muat", "TON dan MT"))}
-              </Text>
-            </View>
-          </View>
-
-          {/* 3. Penumpang */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>3. Penumpang (Orang)</Text>
-            <View style={styles.tableRow}>
-              <Text style={styles.tableColLabel}>Turun/Debarkasi</Text>
-              <Text style={styles.tableColValue}>
-                {formatNumber(getVal("bongkar", "Penumpang"))}
-              </Text>
-            </View>
-            <View style={styles.tableRow}>
-              <Text style={styles.tableColLabel}>Naik/Embarkasi</Text>
-              <Text style={styles.tableColValue}>
-                {formatNumber(getVal("muat", "Penumpang"))}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* RIGHT COLUMN */}
-        <View style={styles.column}>
-          {/* 4. Bongkar Peti Kemas */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>4. Bongkar Peti Kemas</Text>
-
-            <Text style={styles.subHeader}>a. Isi</Text>
-            <View style={styles.tableRow}>
-              <Text style={[styles.tableColLabel, { paddingLeft: 15 }]}>
-                20 Teus Ton
-              </Text>
-              <Text style={styles.tableColValue}>
-                {formatNumber(getCVal("Bongkar", "Isi", "20_ton"))}
-              </Text>
-            </View>
-            <View style={styles.tableRow}>
-              <Text style={[styles.tableColLabel, { paddingLeft: 15 }]}>
-                20 Teus Box
-              </Text>
-              <Text style={styles.tableColValue}>
-                {formatNumber(getCVal("Bongkar", "Isi", "20_box"))}
-              </Text>
-            </View>
-            <View style={styles.tableRow}>
-              <Text style={[styles.tableColLabel, { paddingLeft: 15 }]}>
-                40 Teus Ton
-              </Text>
-              <Text style={styles.tableColValue}>
-                {formatNumber(getCVal("Bongkar", "Isi", "40_ton"))}
-              </Text>
-            </View>
-            <View style={styles.tableRow}>
-              <Text style={[styles.tableColLabel, { paddingLeft: 15 }]}>
-                40 Teus Box
-              </Text>
-              <Text style={styles.tableColValue}>
-                {formatNumber(getCVal("Bongkar", "Isi", "40_box"))}
-              </Text>
-            </View>
-
-            <Text style={styles.subHeader}>b. Kosong</Text>
-            <View style={styles.tableRow}>
-              <Text style={[styles.tableColLabel, { paddingLeft: 15 }]}>
-                20 Teus Box
-              </Text>
-              <Text style={styles.tableColValue}>
-                {formatNumber(getCVal("Bongkar", "Kosong", "20_box"))}
-              </Text>
-            </View>
-            <View style={styles.tableRow}>
-              <Text style={[styles.tableColLabel, { paddingLeft: 15 }]}>
-                40 Teus Box
-              </Text>
-              <Text style={styles.tableColValue}>
-                {formatNumber(getCVal("Bongkar", "Kosong", "40_box"))}
-              </Text>
-            </View>
-          </View>
-
-          {/* 5. Muat Peti Kemas */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>5. Muat Peti Kemas</Text>
-
-            <Text style={styles.subHeader}>a. Isi</Text>
-            <View style={styles.tableRow}>
-              <Text style={[styles.tableColLabel, { paddingLeft: 15 }]}>
-                20 Teus Ton
-              </Text>
-              <Text style={styles.tableColValue}>
-                {formatNumber(getCVal("Muat", "Isi", "20_ton"))}
-              </Text>
-            </View>
-            <View style={styles.tableRow}>
-              <Text style={[styles.tableColLabel, { paddingLeft: 15 }]}>
-                20 Teus Box
-              </Text>
-              <Text style={styles.tableColValue}>
-                {formatNumber(getCVal("Muat", "Isi", "20_box"))}
-              </Text>
-            </View>
-            <View style={styles.tableRow}>
-              <Text style={[styles.tableColLabel, { paddingLeft: 15 }]}>
-                40 Teus Ton
-              </Text>
-              <Text style={styles.tableColValue}>
-                {formatNumber(getCVal("Muat", "Isi", "40_ton"))}
-              </Text>
-            </View>
-            <View style={styles.tableRow}>
-              <Text style={[styles.tableColLabel, { paddingLeft: 15 }]}>
-                40 Teus Box
-              </Text>
-              <Text style={styles.tableColValue}>
-                {formatNumber(getCVal("Muat", "Isi", "40_box"))}
-              </Text>
-            </View>
-
-            <Text style={styles.subHeader}>b. Kosong</Text>
-            <View style={styles.tableRow}>
-              <Text style={[styles.tableColLabel, { paddingLeft: 15 }]}>
-                20 Teus Box
-              </Text>
-              <Text style={styles.tableColValue}>
-                {formatNumber(getCVal("Muat", "Kosong", "20_box"))}
-              </Text>
-            </View>
-            <View style={styles.tableRow}>
-              <Text style={[styles.tableColLabel, { paddingLeft: 15 }]}>
-                40 Teus Box
-              </Text>
-              <Text style={styles.tableColValue}>
-                {formatNumber(getCVal("Muat", "Kosong", "40_box"))}
-              </Text>
-            </View>
-          </View>
-        </View>
+    <View style={styles.summarySection} wrap={false}>
+      <Text style={styles.summaryTitle}>RINGKASAN OPERASIONAL</Text>
+      <View style={styles.summaryItem}>
+        <Text style={styles.summaryLabel}>Total Kunjungan Kapal</Text>
+        <Text style={styles.summaryValue}>: {totalVisits} Unit</Text>
       </View>
-
-      {/* Footer / Generated Info */}
-      <Text
-        style={{
-          position: "absolute",
-          bottom: 20,
-          left: 20,
-          right: 20,
-          fontSize: 7,
-          textAlign: "center",
-          color: "#888",
-        }}
-      >
-        Dicetak pada: {new Date().toLocaleString("id-ID")} | Sistem Informasi
-        Pelaporan Pelabuhan
-      </Text>
-    </Page>
+      <View style={styles.summaryItem}>
+        <Text style={styles.summaryLabel}>Total Muatan / Penumpang</Text>
+        <Text style={styles.summaryValue}>: {formatNumberIndo(displayCargo)} Ton / Orang</Text>
+      </View>
+    </View>
   );
 };
 
 const RekapPdfDocument = ({
-  dataLuarNegeri,
-  dataDalamNegeri,
-  dataPerintis,
-  dataRakyat,
+  dataLuarNegeri = { entries: [], header: { unit: 0 }, bongkar: {}, muat: {} },
+  dataDalamNegeri = { entries: [], header: { unit: 0 }, bongkar: {}, muat: {} },
+  dataPerintis = { entries: [], header: { unit: 0 }, bongkar: {}, muat: {} },
+  dataRakyat = { entries: [], header: { unit: 0 }, bongkar: {}, muat: {} },
   startDate,
   endDate,
-}) => (
-  <Document>
-    <CategoryPage
-      category="Luar Negeri"
-      data={dataLuarNegeri}
-      startDate={startDate}
-      endDate={endDate}
-    />
-    <CategoryPage
-      category="Dalam Negeri"
-      data={dataDalamNegeri}
-      startDate={startDate}
-      endDate={endDate}
-    />
-    <CategoryPage
-      category="Perintis"
-      data={dataPerintis}
-      startDate={startDate}
-      endDate={endDate}
-    />
-    <CategoryPage
-      category="Rakyat"
-      data={dataRakyat}
-      startDate={startDate}
-      endDate={endDate}
-    />
-  </Document>
-);
+}) => {
+  const generatedDate = formatDateIndo(new Date());
+
+  // Page 1 Data: International (Luar Negeri)
+  const internationalEntries = dataLuarNegeri?.entries || [];
+
+  // Page 2 Data: Combined (Domestic + Pioneer + Public)
+  const combinedEntries = [
+    ...(dataDalamNegeri?.entries || []),
+    ...(dataPerintis?.entries || []),
+    ...(dataRakyat?.entries || []),
+  ].sort((a, b) => {
+    const dateA = a && a.tanggal_laporan ? new Date(a.tanggal_laporan) : new Date(0);
+    const dateB = b && b.tanggal_laporan ? new Date(b.tanggal_laporan) : new Date(0);
+    return dateA - dateB;
+  });
+
+  return (
+    <Document title={`Laporan Rekapitulasi Operasional ${startDate} - ${endDate}`}>
+      {/* Page 1: International Operations Recap */}
+      <Page size="A4" style={styles.page}>
+        <View style={styles.pageBorder} fixed />
+        <Text style={styles.watermark} fixed>OFFICIAL REPORT</Text>
+        
+        <OfficialHeader />
+
+        <View style={styles.titleSection}>
+          <Text style={styles.reportTitle}>LAPORAN REKAPITULASI OPERASIONAL LUAR NEGERI</Text>
+          <Text style={styles.reportSubtitle}>Periode Pelaporan: {startDate} s/d {endDate}</Text>
+        </View>
+
+        {internationalEntries.length > 0 ? (
+          <View style={styles.table}>
+            {/* Table Header */}
+            <View style={styles.tableRow} fixed>
+              <View style={[styles.tableHeaderCell, styles.colNo]}><Text>No</Text></View>
+              <View style={[styles.tableHeaderCell, styles.colDate]}><Text>Tanggal</Text></View>
+              <View style={[styles.tableHeaderCell, styles.colActivity]}><Text>Kegiatan</Text></View>
+              <View style={[styles.tableHeaderCell, styles.colCommodity]}><Text>Komoditas</Text></View>
+              <View style={[styles.tableHeaderCell, styles.colVolume]}><Text>Volume</Text></View>
+              <View style={[styles.tableHeaderCell, styles.colUnit]}><Text>Satuan</Text></View>
+            </View>
+
+            {/* Table Body */}
+            {internationalEntries.map((entry, index) => (
+              <View style={styles.tableRow} key={entry.id}>
+                <View style={[styles.tableCell, styles.colNo]}><Text>{index + 1}</Text></View>
+                <View style={[styles.tableCell, styles.colDate]}><Text>{entry.tanggal_laporan || "-"}</Text></View>
+                <View style={[styles.tableCell, styles.colActivity]}><Text>{entry.jenis_kegiatan || "-"}</Text></View>
+                <View style={[styles.tableCell, styles.colCommodity]}>
+                  <Text style={{ fontWeight: "bold" }}>{entry.komoditas || entry.nama_muatan || "-"}</Text>
+                </View>
+                <View style={[styles.tableCell, styles.colVolume]}><Text>{formatNumberIndo(entry.jumlah_muatan)}</Text></View>
+                <View style={[styles.tableCell, styles.colUnit]}><Text>{entry.satuan_muatan || "-"}</Text></View>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <Text style={{ textAlign: "center", marginTop: 20, fontStyle: "italic" }}>Tidak ada data operasional luar negeri tersedia.</Text>
+        )}
+
+        <SummarySection data={dataLuarNegeri} entries={internationalEntries} />
+
+        <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => `Halaman ${pageNumber} dari ${totalPages}`} fixed />
+      </Page>
+
+      {/* Page 2: Domestic, Pioneer, and Public Operations Recap */}
+      <Page size="A4" style={styles.page}>
+        <View style={styles.pageBorder} fixed />
+        <Text style={styles.watermark} fixed>OFFICIAL REPORT</Text>
+        
+        <OfficialHeader />
+
+        <View style={styles.titleSection}>
+          <Text style={styles.reportTitle}>LAPORAN REKAPITULASI OPERASIONAL DALAM NEGERI, PERINTIS, DAN RAKYAT</Text>
+          <Text style={styles.reportSubtitle}>Periode Pelaporan: {startDate} s/d {endDate}</Text>
+        </View>
+
+        {combinedEntries.length > 0 ? (
+          <View style={styles.table}>
+            {/* Table Header */}
+            <View style={styles.tableRow} fixed>
+              <View style={[styles.tableHeaderCell, styles.colNo]}><Text>No</Text></View>
+              <View style={[styles.tableHeaderCell, styles.colDate]}><Text>Tanggal</Text></View>
+              <View style={[styles.tableHeaderCell, styles.colActivity]}><Text>Kegiatan</Text></View>
+              <View style={[styles.tableHeaderCell, styles.colCommodity]}><Text>Komoditas / Kategori</Text></View>
+              <View style={[styles.tableHeaderCell, styles.colVolume]}><Text>Volume</Text></View>
+              <View style={[styles.tableHeaderCell, styles.colUnit]}><Text>Satuan</Text></View>
+            </View>
+
+            {/* Table Body */}
+            {combinedEntries.map((entry, index) => (
+              <View style={styles.tableRow} key={entry.id}>
+                <View style={[styles.tableCell, styles.colNo]}><Text>{index + 1}</Text></View>
+                <View style={[styles.tableCell, styles.colDate]}><Text>{entry.tanggal_laporan || "-"}</Text></View>
+                <View style={[styles.tableCell, styles.colActivity]}><Text>{entry.jenis_kegiatan || "-"}</Text></View>
+                <View style={[styles.tableCell, styles.colCommodity]}>
+                  <Text style={{ fontWeight: "bold" }}>{entry.komoditas || entry.nama_muatan || "-"}</Text>
+                  <Text style={{ fontSize: 7, color: "#666", marginTop: 2 }}>{entry.kategori_pelayaran}</Text>
+                </View>
+                <View style={[styles.tableCell, styles.colVolume]}><Text>{formatNumberIndo(entry.jumlah_muatan)}</Text></View>
+                <View style={[styles.tableCell, styles.colUnit]}><Text>{entry.satuan_muatan || "-"}</Text></View>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <Text style={{ textAlign: "center", marginTop: 20, fontStyle: "italic" }}>Tidak ada data operasional dalam negeri, perintis, atau rakyat tersedia.</Text>
+        )}
+
+        {/* Use combined data for summary calculation on Page 2 */}
+        <SummarySection 
+          data={{
+            header: {
+              unit: (dataDalamNegeri?.header?.unit || 0) + (dataPerintis?.header?.unit || 0) + (dataRakyat?.header?.unit || 0)
+            },
+            bongkar: {
+              "TON dan MT": {
+                value: (dataDalamNegeri?.bongkar?.["TON dan MT"]?.value || 0) + 
+                       (dataPerintis?.bongkar?.["TON dan MT"]?.value || 0) + 
+                       (dataRakyat?.bongkar?.["TON dan MT"]?.value || 0)
+              }
+            },
+            muat: {
+              "TON dan MT": {
+                value: (dataDalamNegeri?.muat?.["TON dan MT"]?.value || 0) + 
+                       (dataPerintis?.muat?.["TON dan MT"]?.value || 0) + 
+                       (dataRakyat?.muat?.["TON dan MT"]?.value || 0)
+              }
+            }
+          }}
+          entries={combinedEntries} 
+        />
+        
+        <Text style={styles.pageNumber} render={({ pageNumber, totalPages }) => `Halaman ${pageNumber} dari ${totalPages}`} fixed />
+      </Page>
+    </Document>
+  );
+};
 
 export default RekapPdfDocument;

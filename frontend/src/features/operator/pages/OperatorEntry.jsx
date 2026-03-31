@@ -7,9 +7,8 @@ import {
   manualSubmitEntries,
 } from "../../../services/api";
 import EntryForm from "../components/EntryForm";
-import EntryTable from "../components/EntryTable";
 import toast from "react-hot-toast";
-import { AlertCircle, AlertTriangle, Send } from "lucide-react";
+import { AlertCircle, AlertTriangle, Send, FileText, Plus, Ship, Save, Trash2, Calendar, Search } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
 
 const OperatorEntry = () => {
@@ -128,28 +127,32 @@ const OperatorEntry = () => {
           <div className="mt-1 text-slate-500 text-sm">
             Kelola data kunjungan kapal untuk periode aktif.
           </div>
-          <div className="mt-2 flex items-center space-x-2 text-sm">
-            <span className="font-semibold">Periode entri:</span>
-            <select
-              className="input-field h-8 text-sm"
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-            >
-              {monthNames.map((name, idx) => (
-                <option key={idx} value={idx + 1}>
-                  {name}
-                </option>
-              ))}
-            </select>
-            <select
-              className="input-field h-8 text-sm"
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-            >
-              {Array.from({ length: 5 }, (_, i) => currentDate.getFullYear() - 2 + i).map((yr) => (
-                <option key={yr} value={yr}>{yr}</option>
-              ))}
-            </select>
+          <div className="mt-4 flex flex-wrap items-center gap-3 bg-white p-3 rounded-xl border border-slate-100 shadow-sm w-fit">
+            <span className="text-sm font-bold text-slate-700 whitespace-nowrap">Periode Entri:</span>
+            <div className="flex items-center gap-2">
+              <select
+                className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all min-w-[120px]"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+              >
+                {monthNames.map((name, idx) => (
+                  <option key={idx} value={idx + 1}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all min-w-[100px]"
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              >
+                {Array.from({ length: 5 }, (_, i) => currentDate.getFullYear() - 2 + i).map((yr) => (
+                  <option key={yr} value={yr}>
+                    {yr}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
