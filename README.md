@@ -1,6 +1,6 @@
 <div align="center">
 
-# KOMUT (Komoditas Utama) 🚢
+# KOMUT (Komoditas Utama)
 ### Port Operational Reporting System
 
 ![Python](https://img.shields.io/badge/Python-3.9+-blue?style=for-the-badge&logo=python&logoColor=white)
@@ -134,8 +134,8 @@ simoppel/
 
 #### 1. Clone the repository
 ```bash
-git clone https://github.com/username/simoppel.git
-cd simoppel
+git clone https://github.com/nurita-wahyuni/Komoditas-Utama.git
+cd Komoditas-Utama
 ```
 
 #### 2. Backend Setup
@@ -270,18 +270,6 @@ npm run dev
 - **Data Reporting**: Specialized forms for single or batch ship entry.
 - **Self-Tracking**: Personal dashboard to monitor reporting history.
 - **Drafting**: Capability to save reports as drafts before final submission.
-
----
-
-## 🖼️ Screenshots
-
-| Login Page | Admin Dashboard |
-|------------|-----------------|
-| ![Login](https://via.placeholder.com/400x250?text=Login+Page) | ![Admin](https://via.placeholder.com/400x250?text=Admin+Dashboard) |
-
-| Entry Form | PDF Report |
-|------------|------------|
-| ![Entry](https://via.placeholder.com/400x250?text=Entry+Form) | ![PDF](https://via.placeholder.com/400x250?text=PDF+Export) |
 
 ---
 
