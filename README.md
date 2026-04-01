@@ -252,24 +252,38 @@ npm run dev
 | `admin_audit_logs`| Tracks sensitive administrative changes |
 | `auto_submit_logs`| Logs for automated system processes |
 
-### Relationships
-- **users (1)** ──── **(many) ship_entries**: Each entry is linked to an `operator_id`.
-- **users (1)** ──── **(many) admin_audit_logs**: Logs linked to `admin_id`.
+### Relasi Tabel
+- **users (1)** ──── **(banyak) ship_entries**: Setiap entri terhubung ke `operator_id`.
+- **users (1)** ──── **(banyak) admin_audit_logs**: Log terhubung ke `admin_id`.
 
 ---
 
-## 👥 User Roles
+## 🔑 Akun Demo (Default)
 
-### 🔴 Admin (Administrator)
-- **Overview Dashboard**: Access to system-wide cargo trends.
-- **Reporting**: Generate and export operational reports to PDF/Excel.
-- **Management**: full CRUD on Operator accounts.
-- **Quality Control**: Edit or delete any entry to ensure data accuracy.
+Anda dapat menggunakan akun berikut untuk menguji aplikasi setelah melakukan setup database:
+
+### 🔴 Administrator
+- **Email**: `admin@example.com`
+- **Password**: `password123`
 
 ### 🟢 Operator
-- **Data Reporting**: Specialized forms for single or batch ship entry.
-- **Self-Tracking**: Personal dashboard to monitor reporting history.
-- **Drafting**: Capability to save reports as drafts before final submission.
+- **Email**: `andi@example.com` atau `budi@example.com`
+- **Password**: `password123`
+
+---
+
+## 👥 Peran Pengguna
+
+### 🔴 Admin (Administrator)
+- **Dasbor Ikhtisar**: Akses ke tren muatan di seluruh sistem.
+- **Pelaporan**: Membuat dan mengekspor laporan operasional ke PDF/Excel.
+- **Manajemen**: CRUD penuh pada akun Operator.
+- **Kontrol Kualitas**: Mengedit atau menghapus entri apa pun untuk memastikan akurasi data.
+
+### 🟢 Operator
+- **Pelaporan Data**: Formulir khusus untuk entri kapal tunggal atau massal.
+- **Pelacakan Mandiri**: Dasbor pribadi untuk memantau riwayat pelaporan.
+- **Manajemen Draf**: Kemampuan untuk menyimpan laporan sebagai draf sebelum pengiriman final.
 
 ---
 
