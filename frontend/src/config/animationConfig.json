@@ -1,0 +1,158 @@
+{
+  "cursorTracking": {
+    "stiffness": 50,
+    "damping": 30,
+    "mass": 0.8,
+    "restDelta": 0.001
+  },
+  "eyeTracking": {
+    "stiffness": 800,
+    "damping": 40,
+    "mass": 0.5
+  },
+  "bodySway": {
+    "stiffness": 30,
+    "damping": 30,
+    "mass": 2.0,
+    "rotationRange": 0
+  },
+  "headTurn": {
+    "stiffness": 40,
+    "damping": 25,
+    "mass": 1.2,
+    "maxRotation": 60,
+    "minRotation": -60
+  },
+  "headTracking": {
+    "stiffness": 800,
+    "damping": 40,
+    "mass": 0.5,
+    "xRange": 10,
+    "yRange": 10,
+    "rotateXRange": 10,
+    "rotateYRange": 15
+  },
+  "blinkInterval": {
+    "min": 5000,
+    "max": 20000
+  },
+  "blinkDuration": 180,
+  "expressionTransition": {
+    "type": "spring",
+    "stiffness": 250,
+    "damping": 25
+  },
+  "reactionDelay": 300,
+  "eyeTrackingDelay": 150,
+  "curiosity": {
+    "intensity": 0.8,
+    "characterTrackingDelay": 500,
+    "characterTrackingStiffness": 80,
+    "characterTrackingDamping": 25,
+    "maxLookOffset": 15
+  },
+  "behavior": {
+    "distractionIntervalMin": 500,
+    "distractionIntervalMax": 2000,
+    "distractionDurationMin": 300,
+    "distractionDurationMax": 800,
+    "microExpressionInterval": 4000
+  },
+  "interCharacterGaze": {
+    "durationMin": 800,
+    "durationMax": 1200,
+    "delayMin": 300,
+    "delayMax": 500,
+    "cycleDurationMin": 2000,
+    "cycleDurationMax": 3000,
+    "easing": [0.42, 0, 0.58, 1]
+  },
+  "emailFocus": {
+    "lookAtFormDuration": 400,
+    "blinkInterval": 3500,
+    "expressionIntensity": 0.2
+  },
+  "passwordBehavior": {
+    "hidden": {
+      "duration": 700,
+      "lookAngleX": 0,
+      "lookAngleY": 15,
+      "expression": "jutek"
+    },
+    "visible": {
+      "turnDuration": 600,
+      "turnAngle": -30,
+      "peekIntervalMin": 3000,
+      "peekIntervalMax": 6000,
+      "peekDuration": 1500,
+      "peekAngle": 35,
+      "expression": "sombongPenasaran",
+      "transition": {
+        "duration": 0.6,
+        "type": "tween",
+        "ease": "easeInOut"
+      }
+    }
+  },
+  "passwordReaction": {
+    "duration": 1000,
+    "ease": "easeInOut",
+    "dismissive": {
+      "rotate": 15,
+      "y": -5,
+      "x": 5
+    },
+    "ignorant": {
+      "rotate": 10,
+      "y": 0,
+      "x": 10
+    }
+  },
+  "physics": {
+    "drag": 0.1,
+    "bounce": 0.2
+  },
+  "interaction": {
+    "lookAtEachOtherInterval": 4000,
+    "lookAtEachOtherDuration": 1200
+  },
+  "variants": {
+    "eyebrow": [
+      "neutral",
+      "curious",
+      "surprised",
+      "suspicious",
+      "shy",
+      "focus",
+      "happy",
+      "angry",
+      "raisedOne",
+      "raisedBoth",
+      "arrogant"
+    ],
+    "mouth": [
+      "neutral",
+      "happy",
+      "curious",
+      "surprised",
+      "suspicious",
+      "focus",
+      "shy",
+      "laugh",
+      "sneer",
+      "pucker",
+      "thinSmile",
+      "jutek"
+    ],
+    "eyelid": [
+      "open",
+      "blink",
+      "squint",
+      "wide",
+      "shy",
+      "closed",
+      "halfClosed",
+      "arrogant"
+    ]
+  }
+}

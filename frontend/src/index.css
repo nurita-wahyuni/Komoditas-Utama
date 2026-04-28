@@ -1,0 +1,217 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+
+    --radius: 0.5rem;
+
+    /* Enterprise Colors */
+    --navy-deep: #0A1628;
+    --gold-accent: #F5A623;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  }
+}
+
+/* Glassmorphism Styles for Login */
+.login-bg-animated {
+  background: linear-gradient(135deg, #0A1628 0%, #0D2B55 50%, #1A3A6B 100%);
+  background-size: 400% 400%;
+  animation: meshGradient 15s ease infinite;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+}
+
+@keyframes meshGradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  box-shadow: 0 8px 48px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.glass-input {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: white !important;
+  transition: all 0.2s ease !important;
+}
+
+.glass-input:focus {
+  border-color: #F5A623 !important;
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.2) !important;
+  outline: none !important;
+}
+
+.glass-input::placeholder {
+  color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.btn-glass-primary {
+  background: linear-gradient(135deg, #F5A623, #E8920F);
+  color: #0A1628;
+  font-weight: 700;
+  transition: all 0.15s ease;
+}
+
+.btn-glass-primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(245, 166, 35, 0.4);
+}
+
+.btn-glass-primary:active {
+  transform: translateY(0);
+  scale: 0.99;
+}
+
+.floating-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(100px);
+  z-index: -1;
+  animation: floatOrb 10s infinite alternate ease-in-out;
+}
+
+@keyframes floatOrb {
+  from { transform: translate(0, 0); }
+  to { transform: translate(30px, 40px); }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+}
+
+/* Original styles below */
+@layer components {
+  /* Modern Button Styles */
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2.5 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-sm;
+  }
+
+  .btn-primary {
+    @apply bg-primary-600 text-white hover:bg-primary-700 hover:shadow-md focus:ring-primary-500 border border-transparent;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:text-slate-900 focus:ring-slate-200;
+  }
+
+  .btn-accent {
+    @apply bg-secondary-600 text-white hover:bg-secondary-700 hover:shadow-glow focus:ring-secondary-500 border border-transparent;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 border border-transparent;
+  }
+
+  /* Modern Card Style */
+  .card {
+    @apply bg-surface-card rounded-lg shadow-card border border-surface-divider p-6 transition-all duration-300 hover:shadow-elevation;
+  }
+
+  /* Form Inputs */
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-md border border-surface-divider bg-background text-foreground placeholder-text-muted focus:border-primary focus:bg-surface-card focus:ring-2 focus:ring-primary/20 transition-all outline-none text-sm;
+  }
+
+  .label-text {
+    @apply block text-sm font-medium text-text-secondary mb-1.5;
+  }
+
+  /* Sidebar Nav Item */
+  .nav-item {
+    @apply flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors duration-200;
+  }
+
+  .nav-item-active {
+    @apply bg-primary-50 text-primary-700;
+  }
+
+  .nav-item-inactive {
+    @apply text-slate-600 hover:bg-slate-50 hover:text-slate-900;
+  }
+
+  /* Background removed (moved to inline img in component) */
+
+  .login-shell {
+    border-radius: 1.5rem; /* More rounded for modern look */
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 
+      0 20px 50px -12px rgba(0, 0, 0, 0.15), /* Soft drop shadow */
+      0 0 0 1px rgba(255, 255, 255, 0.1) inset; /* Inner light border */
+    transform-style: preserve-3d;
+    perspective: 1000px;
+  }
+
+  .login-shell__tint {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.4),
+      rgba(255, 255, 255, 0.1)
+    );
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: -1;
+  }
+
+  @supports not (
+    (backdrop-filter: blur(10px)) or (-webkit-backdrop-filter: blur(10px))
+  ) {
+    .login-shell__tint {
+      background: linear-gradient(
+        135deg,
+        rgba(59, 130, 246, 0.22),
+        rgba(255, 255, 255, 0.35) 45%,
+        rgba(255, 255, 255, 0.25)
+      );
+    }
+  }
+}
